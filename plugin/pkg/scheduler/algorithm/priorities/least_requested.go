@@ -18,6 +18,7 @@ package priorities
 
 import (
 	"fmt"
+	"strconv"
 
 	"k8s.io/kubernetes/pkg/api/v1"
 	schedulerapi "k8s.io/kubernetes/plugin/pkg/scheduler/api"
@@ -70,6 +71,20 @@ func calculateUnusedPriority(pod *v1.Pod, podRequests *schedulercache.Resource, 
 	totalResources.MilliCPU += nodeInfo.NonZeroRequest().MilliCPU
 	totalResources.Memory += nodeInfo.NonZeroRequest().Memory
 
+	// ################
+	totalDiskIops := int64(0)
+	totalDiskSize := int64(0)
+	capacityDiskIops, _:= strconv.ParseInt(node.ObjectMeta.Labels["iops"],10,64)
+	capacityDiskSize, _:= strconv.ParseInt(node.ObjectMeta.Labels["disk_size"],10,64)
+	ioScore := int64((totalDiskIops/capacityDiskIops + totalDiskSize/capacityDiskSize) / 2)
+	for _, existingPod := range nodeInfo.Pods(){
+			diskIops, _ := strconv.ParseInt(existingPod.ObjectMeta.Labels["iops"], 10, 64)
+			diskSize, _ := strconv.ParseInt(existingPod.ObjectMeta.Labels["disk_size"], 10, 64)
+			totalDiskIops += diskIops
+			totalDiskSize += diskSize
+	}
+	// #################
+
 	cpuScore := calculateUnusedScore(totalResources.MilliCPU, allocatableResources.MilliCPU, node.Name)
 	memoryScore := calculateUnusedScore(totalResources.Memory, allocatableResources.Memory, node.Name)
 	if glog.V(10) {
@@ -86,6 +101,6 @@ func calculateUnusedPriority(pod *v1.Pod, podRequests *schedulercache.Resource, 
 
 	return schedulerapi.HostPriority{
 		Host:  node.Name,
-		Score: int((cpuScore + memoryScore) / 2),
+		Score: int((cpuScore + memoryScore + ioScore) / 3),
 	}, nil
 }

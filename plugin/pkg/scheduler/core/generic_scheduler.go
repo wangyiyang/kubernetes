@@ -33,6 +33,8 @@ import (
 	"k8s.io/kubernetes/plugin/pkg/scheduler/algorithm/predicates"
 	schedulerapi "k8s.io/kubernetes/plugin/pkg/scheduler/api"
 	"k8s.io/kubernetes/plugin/pkg/scheduler/schedulercache"
+	"net/url"
+	"net/http"
 )
 
 type FailedPredicateMap map[string][]algorithm.PredicateFailureReason
@@ -127,7 +129,21 @@ func (g *genericScheduler) Schedule(pod *v1.Pod, nodeLister algorithm.NodeLister
 	}
 
 	trace.Step("Selecting host")
-	return g.selectHost(priorityList)
+	result, err := g.selectHost(priorityList)
+
+	// TODO:这里调用storage_agent
+	data := make(url.Values)
+	data["iops"] = []string{pod.Labels["iops"]}
+	data["size"] = []string{pod.Labels["disk_size"]}
+	data["lv_name"] = []string{pod.Name}
+	node_url := fmt.Sprintf("http://%v:8080/v1/lv/", result)
+	res, err := http.PostForm(node_url, data)
+	if err != nil {
+			return "", err
+		}
+	defer res.Body.Close()
+
+	return result, err
 }
 
 // selectHost takes a prioritized list of nodes and then picks one
