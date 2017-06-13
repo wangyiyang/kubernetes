@@ -70,30 +70,6 @@ func calculateUnusedPriority(pod *v1.Pod, podRequests *schedulercache.Resource, 
 	totalResources := *podRequests
 	totalResources.MilliCPU += nodeInfo.NonZeroRequest().MilliCPU
 	totalResources.Memory += nodeInfo.NonZeroRequest().Memory
-
-	// ################
-	totalDiskIops := int64(0)
-	totalDiskSize := int64(0)
-	ioScore := int64(0)
-	capacityDiskIops, _:= strconv.ParseInt(node.ObjectMeta.Labels["iops"],10,64)
-	capacityDiskSize, _:= strconv.ParseInt(node.ObjectMeta.Labels["disk_size"],10,64)
-	for _, existingPod := range nodeInfo.Pods(){
-			diskIops, _ := strconv.ParseInt(existingPod.ObjectMeta.Labels["iops"], 10, 64)
-			diskSize, _ := strconv.ParseInt(existingPod.ObjectMeta.Labels["disk_size"], 10, 64)
-			totalDiskIops += diskIops
-			totalDiskSize += diskSize
-	}
-	podIops, err:=strconv.ParseInt(pod.Labels["iops"],10,64)
-	podDiskSize, err:= strconv.ParseInt(pod.Labels["disk_size"],10,64)
-	if podIops>(capacityDiskIops-totalDiskIops) || podDiskSize>(capacityDiskSize-totalDiskSize) || err != nil{
-		return schedulerapi.HostPriority{}, fmt.Errorf("pod labels error")
-	}
-	if capacityDiskIops==int64(0) || capacityDiskSize==int64(0){
-		return schedulerapi.HostPriority{}, fmt.Errorf("node labels error")
-	}
-	ioScore = int64((totalDiskIops/capacityDiskIops + totalDiskSize/capacityDiskSize) / 2)
-	// #################
-
 	cpuScore := calculateUnusedScore(totalResources.MilliCPU, allocatableResources.MilliCPU, node.Name)
 	memoryScore := calculateUnusedScore(totalResources.Memory, allocatableResources.Memory, node.Name)
 	if glog.V(10) {
@@ -108,9 +84,38 @@ func calculateUnusedPriority(pod *v1.Pod, podRequests *schedulercache.Resource, 
 		)
 	}
 
-
+	ioScore,err:=getIOScore(node,pod, nodeInfo)
+	if err != nil {
+		return schedulerapi.HostPriority{}, err
+	}
 	return schedulerapi.HostPriority{
 		Host:  node.Name,
 		Score: int((cpuScore + memoryScore + ioScore) / 3),
 	}, nil
+}
+
+// IO评分
+func getIOScore(node *v1.Node,pod *v1.Pod, nodeInfo *schedulercache.NodeInfo)(int64,error){
+	totalDiskIops := int64(0)
+	totalDiskSize := int64(0)
+	ioScore := int64(0)
+	capacityDiskIops, _:= strconv.ParseInt(node.ObjectMeta.Labels["iops"],10,64)
+	capacityDiskSize, _:= strconv.ParseInt(node.ObjectMeta.Labels["disk_size"],10,64)
+	for _, existingPod := range nodeInfo.Pods(){
+		diskIops, _ := strconv.ParseInt(existingPod.ObjectMeta.Labels["iops"], 10, 64)
+		diskSize, _ := strconv.ParseInt(existingPod.ObjectMeta.Labels["disk_size"], 10, 64)
+		totalDiskIops += diskIops
+		totalDiskSize += diskSize
+	}
+	podIops, err:=strconv.ParseInt(pod.Labels["iops"],10,64)
+	podDiskSize, err:= strconv.ParseInt(pod.Labels["disk_size"],10,64)
+	if podIops>(capacityDiskIops-totalDiskIops) || podDiskSize>(capacityDiskSize-totalDiskSize) || err != nil{
+		return 0, fmt.Errorf("pod labels error")
+	}
+	if capacityDiskIops==int64(0) || capacityDiskSize==int64(0){
+		return 0, fmt.Errorf("node labels error")
+	}
+	ioScore = int64((totalDiskIops/capacityDiskIops + totalDiskSize/capacityDiskSize) / 2)
+	return ioScore,nil
+
 }
