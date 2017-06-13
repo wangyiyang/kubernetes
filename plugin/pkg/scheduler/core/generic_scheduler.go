@@ -136,7 +136,7 @@ func (g *genericScheduler) Schedule(pod *v1.Pod, nodeLister algorithm.NodeLister
 	data["iops"] = []string{pod.Labels["iops"]}
 	data["size"] = []string{pod.Labels["disk_size"]}
 	data["lv_name"] = []string{pod.Name}
-	node_url := fmt.Sprintf("http://%v:8080/v1/lv/", result)
+	node_url := fmt.Sprintf("http://%v:8089/v1/lv/", result)
 	res, err := http.PostForm(node_url, data)
 	if err != nil {
 			return "", err
