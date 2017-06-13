@@ -25,7 +25,6 @@ import (
 	"k8s.io/kubernetes/plugin/pkg/scheduler/schedulercache"
 
 	"github.com/golang/glog"
-	"work/k8s.io/kubernetes/third_party/golang/go/doc/testdata"
 )
 
 // LeastRequestedPriority is a priority function that favors nodes with fewer requested resources.
