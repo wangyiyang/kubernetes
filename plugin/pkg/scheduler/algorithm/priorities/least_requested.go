@@ -83,6 +83,11 @@ func calculateUnusedPriority(pod *v1.Pod, podRequests *schedulercache.Resource, 
 			totalDiskIops += diskIops
 			totalDiskSize += diskSize
 	}
+	podIops, err:=strconv.ParseInt(pod.Labels["iops"],10,64)
+	podDiskSize, err:= strconv.ParseInt(pod.Labels["disk_size"],10,64)
+	if podIops>(capacityDiskIops-totalDiskIops) || podDiskSize>(capacityDiskSize-totalDiskSize) || err != nil{
+		return schedulerapi.HostPriority{}, fmt.Errorf("pod labels error")
+	}
 	if capacityDiskIops==int64(0) || capacityDiskSize==int64(0){
 		return schedulerapi.HostPriority{}, fmt.Errorf("node labels error")
 	}
