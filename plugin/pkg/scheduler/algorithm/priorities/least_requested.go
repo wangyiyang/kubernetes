@@ -86,6 +86,7 @@ func calculateUnusedPriority(pod *v1.Pod, podRequests *schedulercache.Resource, 
 	}
 
 	ioScore,err:=getIOScore(node,pod, nodeInfo)
+	glog.V(10).Infof("ioScore: %v",ioScore)
 	if err != nil {
 		return schedulerapi.HostPriority{}, err
 	}
@@ -102,6 +103,7 @@ func getIOScore(node *v1.Node,pod *v1.Pod, nodeInfo *schedulercache.NodeInfo)(in
 	ioScore := int64(0)
 	capacityDiskIops, _:= strconv.ParseInt(node.ObjectMeta.Labels["iops"],10,64)
 	capacityDiskSize, _:= strconv.ParseInt(node.ObjectMeta.Labels["disk_size"],10,64)
+	glog.V(10).Infof("node's iops %d disk size %d",capacityDiskIops, capacityDiskSize)
 	for _, existingPod := range nodeInfo.Pods(){
 		diskIops, _ := strconv.ParseInt(existingPod.ObjectMeta.Labels["iops"], 10, 64)
 		diskSize, _ := strconv.ParseInt(existingPod.ObjectMeta.Labels["disk_size"], 10, 64)
