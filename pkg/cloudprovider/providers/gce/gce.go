@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
@@ -30,13 +31,6 @@ import (
 	gcfg "gopkg.in/gcfg.v1"
 
 	"cloud.google.com/go/compute/metadata"
-	"github.com/golang/glog"
-	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/google"
-	computealpha "google.golang.org/api/compute/v0.alpha"
-	computebeta "google.golang.org/api/compute/v0.beta"
-	compute "google.golang.org/api/compute/v1"
-	container "google.golang.org/api/container/v1"
 
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -48,12 +42,18 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/flowcontrol"
-
 	"k8s.io/kubernetes/pkg/cloudprovider"
-	"k8s.io/kubernetes/pkg/cloudprovider/providers/gce/cloud"
 	"k8s.io/kubernetes/pkg/controller"
 	kubeletapis "k8s.io/kubernetes/pkg/kubelet/apis"
 	"k8s.io/kubernetes/pkg/version"
+
+	"github.com/golang/glog"
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/google"
+	computealpha "google.golang.org/api/compute/v0.alpha"
+	computebeta "google.golang.org/api/compute/v0.beta"
+	compute "google.golang.org/api/compute/v1"
+	container "google.golang.org/api/container/v1"
 )
 
 const (
@@ -148,9 +148,6 @@ type GCECloud struct {
 	// the corresponding api is enabled.
 	// If not enabled, it should return error.
 	AlphaFeatureGate *AlphaFeatureGate
-
-	// New code generated interface to the GCE compute library.
-	c cloud.Cloud
 }
 
 // TODO: replace gcfg with json
@@ -216,17 +213,9 @@ func init() {
 		})
 }
 
-// Services is the set of all versions of the compute service.
-type Services struct {
-	// GA, Alpha, Beta versions of the compute API.
-	GA    *compute.Service
-	Alpha *computealpha.Service
-	Beta  *computebeta.Service
-}
-
-// ComputeServices returns access to the internal compute services.
-func (g *GCECloud) ComputeServices() *Services {
-	return &Services{g.service, g.serviceAlpha, g.serviceBeta}
+// Raw access to the underlying GCE service, probably should only be used for e2e tests
+func (g *GCECloud) GetComputeService() *compute.Service {
+	return g.service
 }
 
 // newGCECloud creates a new instance of GCECloud.
@@ -247,6 +236,7 @@ func newGCECloud(config io.Reader) (gceCloud *GCECloud, err error) {
 		return nil, err
 	}
 	return CreateGCECloud(cloudConfig)
+
 }
 
 func readConfig(reader io.Reader) (*ConfigFile, error) {
@@ -366,12 +356,11 @@ func generateCloudConfig(configFile *ConfigFile) (cloudConfig *CloudConfig, err 
 // If no tokenSource is specified, uses oauth2.DefaultTokenSource.
 // If managedZones is nil / empty all zones in the region will be managed.
 func CreateGCECloud(config *CloudConfig) (*GCECloud, error) {
-	// Remove any pre-release version and build metadata from the semver,
-	// leaving only the MAJOR.MINOR.PATCH portion. See http://semver.org/.
+	// Remove any pre-release version and build metadata from the semver, leaving only the MAJOR.MINOR.PATCH portion.
+	// See http://semver.org/.
 	version := strings.TrimLeft(strings.Split(strings.Split(version.Get().GitVersion, "-")[0], "+")[0], "v")
 
-	// Create a user-agent header append string to supply to the Google API
-	// clients, to identify Kubernetes as the origin of the GCP API calls.
+	// Create a user-agent header append string to supply to the Google API clients, to identify Kubernetes as the origin of the GCP API calls.
 	userAgent := fmt.Sprintf("Kubernetes/%s (%s %s)", version, runtime.GOOS, runtime.GOARCH)
 
 	// Use ProjectID for NetworkProjectID, if it wasn't explicitly set.
@@ -510,13 +499,6 @@ func CreateGCECloud(config *CloudConfig) (*GCECloud, error) {
 	}
 
 	gce.manager = &gceServiceManager{gce}
-	gce.c = cloud.NewGCE(&cloud.Service{
-		GA:            service,
-		Alpha:         serviceAlpha,
-		Beta:          serviceBeta,
-		ProjectRouter: &gceProjectRouter{gce},
-		RateLimiter:   &gceRateLimiter{gce},
-	})
 
 	return gce, nil
 }
@@ -712,6 +694,20 @@ func (gce *GCECloud) updateNodeZones(prevNode, newNode *v1.Node) {
 	}
 }
 
+// Known-useless DNS search path.
+var uselessDNSSearchRE = regexp.MustCompile(`^[0-9]+.google.internal.$`)
+
+// ScrubDNS filters DNS settings for pods.
+func (gce *GCECloud) ScrubDNS(nameservers, searches []string) (nsOut, srchOut []string) {
+	// GCE has too many search paths by default. Filter the ones we know are useless.
+	for _, s := range searches {
+		if !uselessDNSSearchRE.MatchString(s) {
+			srchOut = append(srchOut, s)
+		}
+	}
+	return nameservers, srchOut
+}
+
 // HasClusterID returns true if the cluster has a clusterID
 func (gce *GCECloud) HasClusterID() bool {
 	return true
@@ -739,6 +735,20 @@ func gceSubnetworkURL(apiEndpoint, project, region, subnetwork string) string {
 		apiEndpoint = gceComputeAPIEndpoint
 	}
 	return apiEndpoint + strings.Join([]string{"projects", project, "regions", region, "subnetworks", subnetwork}, "/")
+}
+
+// getProjectIDInURL parses full resource URLS and shorter URLS
+// https://www.googleapis.com/compute/v1/projects/myproject/global/networks/mycustom
+// projects/myproject/global/networks/mycustom
+// All return "myproject"
+func getProjectIDInURL(urlStr string) (string, error) {
+	fields := strings.Split(urlStr, "/")
+	for i, v := range fields {
+		if v == "projects" && i < len(fields)-1 {
+			return fields[i+1], nil
+		}
+	}
+	return "", fmt.Errorf("could not find project field in url: %v", urlStr)
 }
 
 // getRegionInURL parses full resource URLS and shorter URLS

@@ -64,8 +64,7 @@ var (
 // NewCmdCp creates a new Copy command.
 func NewCmdCp(f cmdutil.Factory, cmdOut, cmdErr io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
-		Use: "cp <file-spec-src> <file-spec-dest>",
-		DisableFlagsInUseLine: true,
+		Use:     "cp <file-spec-src> <file-spec-dest>",
 		Short:   i18n.T("Copy files and directories to and from containers."),
 		Long:    "Copy files and directories to and from containers.",
 		Example: cpExample,

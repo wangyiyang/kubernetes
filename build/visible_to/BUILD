@@ -210,7 +210,7 @@ package_group(
         "//cmd/clicheck",
         "//cmd/hyperkube",
         "//cmd/kube-proxy/app",
-        "//cmd/kube-scheduler/app",
+        "//plugin/cmd/kube-scheduler/app",
     ],
 )
 

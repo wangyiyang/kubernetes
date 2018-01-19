@@ -4,47 +4,11 @@ go_library(
     name = "go_default_library",
     srcs = [
         "config.go",
-    ] + select({
-        "@io_bazel_rules_go//go/platform:android": [
-            "seccomp_unsupported.go",
-        ],
-        "@io_bazel_rules_go//go/platform:darwin": [
-            "seccomp_unsupported.go",
-        ],
-        "@io_bazel_rules_go//go/platform:dragonfly": [
-            "seccomp_unsupported.go",
-        ],
-        "@io_bazel_rules_go//go/platform:freebsd": [
-            "seccomp_unsupported.go",
-        ],
-        "@io_bazel_rules_go//go/platform:linux": [
-            "seccomp_unsupported.go",
-        ],
-        "@io_bazel_rules_go//go/platform:nacl": [
-            "seccomp_unsupported.go",
-        ],
-        "@io_bazel_rules_go//go/platform:netbsd": [
-            "seccomp_unsupported.go",
-        ],
-        "@io_bazel_rules_go//go/platform:openbsd": [
-            "seccomp_unsupported.go",
-        ],
-        "@io_bazel_rules_go//go/platform:plan9": [
-            "seccomp_unsupported.go",
-        ],
-        "@io_bazel_rules_go//go/platform:solaris": [
-            "seccomp_unsupported.go",
-        ],
-        "@io_bazel_rules_go//go/platform:windows": [
-            "seccomp_unsupported.go",
-        ],
-        "//conditions:default": [],
-    }),
+        "seccomp_unsupported.go",
+    ],
     importpath = "github.com/opencontainers/runc/libcontainer/seccomp",
     visibility = ["//visibility:public"],
-    deps = [
-        "//vendor/github.com/opencontainers/runc/libcontainer/configs:go_default_library",
-    ],
+    deps = ["//vendor/github.com/opencontainers/runc/libcontainer/configs:go_default_library"],
 )
 
 filegroup(

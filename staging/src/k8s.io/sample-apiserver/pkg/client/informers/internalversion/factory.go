@@ -19,10 +19,6 @@ limitations under the License.
 package internalversion
 
 import (
-	reflect "reflect"
-	sync "sync"
-	time "time"
-
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -30,6 +26,9 @@ import (
 	internalversion "k8s.io/sample-apiserver/pkg/client/clientset/internalversion"
 	internalinterfaces "k8s.io/sample-apiserver/pkg/client/informers/internalversion/internalinterfaces"
 	wardle "k8s.io/sample-apiserver/pkg/client/informers/internalversion/wardle"
+	reflect "reflect"
+	sync "sync"
+	time "time"
 )
 
 type sharedInformerFactory struct {

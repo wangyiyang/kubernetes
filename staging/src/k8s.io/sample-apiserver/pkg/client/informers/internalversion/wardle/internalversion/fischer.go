@@ -19,8 +19,6 @@ limitations under the License.
 package internalversion
 
 import (
-	time "time"
-
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	watch "k8s.io/apimachinery/pkg/watch"
@@ -29,6 +27,7 @@ import (
 	clientset_internalversion "k8s.io/sample-apiserver/pkg/client/clientset/internalversion"
 	internalinterfaces "k8s.io/sample-apiserver/pkg/client/informers/internalversion/internalinterfaces"
 	internalversion "k8s.io/sample-apiserver/pkg/client/listers/wardle/internalversion"
+	time "time"
 )
 
 // FischerInformer provides access to a shared informer and lister for

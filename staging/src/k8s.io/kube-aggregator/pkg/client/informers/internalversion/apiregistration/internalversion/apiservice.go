@@ -19,8 +19,6 @@ limitations under the License.
 package internalversion
 
 import (
-	time "time"
-
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	watch "k8s.io/apimachinery/pkg/watch"
@@ -29,6 +27,7 @@ import (
 	internalclientset "k8s.io/kube-aggregator/pkg/client/clientset_generated/internalclientset"
 	internalinterfaces "k8s.io/kube-aggregator/pkg/client/informers/internalversion/internalinterfaces"
 	internalversion "k8s.io/kube-aggregator/pkg/client/listers/apiregistration/internalversion"
+	time "time"
 )
 
 // APIServiceInformer provides access to a shared informer and lister for

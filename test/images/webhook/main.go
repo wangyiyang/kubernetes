@@ -88,15 +88,10 @@ func admitPods(ar v1beta1.AdmissionReview) *v1beta1.AdmissionResponse {
 	reviewResponse.Allowed = true
 
 	var msg string
-	if v, ok := pod.Labels["webhook-e2e-test"]; ok {
-		if v == "webhook-disallow" {
+	for k, v := range pod.Labels {
+		if k == "webhook-e2e-test" && v == "webhook-disallow" {
 			reviewResponse.Allowed = false
 			msg = msg + "the pod contains unwanted label; "
-		}
-		if v == "wait-forever" {
-			reviewResponse.Allowed = false
-			msg = msg + "the pod response should not be sent; "
-			<-make(chan int) // Sleep forever - no one sends to this channel
 		}
 	}
 	for _, container := range pod.Spec.Containers {

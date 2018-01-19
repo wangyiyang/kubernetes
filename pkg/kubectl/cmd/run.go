@@ -96,8 +96,7 @@ type RunObject struct {
 
 func NewCmdRun(f cmdutil.Factory, cmdIn io.Reader, cmdOut, cmdErr io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
-		Use: "run NAME --image=image [--env=\"key=value\"] [--port=port] [--replicas=replicas] [--dry-run=bool] [--overrides=inline-json] [--command] -- [COMMAND] [args...]",
-		DisableFlagsInUseLine: true,
+		Use:     "run NAME --image=image [--env=\"key=value\"] [--port=port] [--replicas=replicas] [--dry-run=bool] [--overrides=inline-json] [--command] -- [COMMAND] [args...]",
 		Short:   i18n.T("Run a particular image on the cluster"),
 		Long:    runLong,
 		Example: runExample,
@@ -502,7 +501,7 @@ func getRestartPolicy(cmd *cobra.Command, interactive bool) (api.RestartPolicy, 
 	case api.RestartPolicyNever:
 		return api.RestartPolicyNever, nil
 	}
-	return "", cmdutil.UsageErrorf(cmd, "invalid restart policy: %s", restart)
+	return "", cmdutil.UsageErrorf(cmd, "invalid restart policy: %s")
 }
 
 func verifyImagePullPolicy(cmd *cobra.Command) error {

@@ -43,7 +43,6 @@ const (
 	errLeaseFailed       = "AcquireDiskLeaseFailed"
 	errLeaseIDMissing    = "LeaseIdMissing"
 	errContainerNotFound = "ContainerNotFound"
-	errDiskBlobNotFound  = "DiskBlobNotFound"
 )
 
 var defaultBackOff = kwait.Backoff{
@@ -54,6 +53,7 @@ var defaultBackOff = kwait.Backoff{
 }
 
 type controllerCommon struct {
+	tenantID              string
 	subscriptionID        string
 	location              string
 	storageEndpointSuffix string
@@ -111,6 +111,7 @@ func (c *controllerCommon) AttachDisk(isManagedDisk bool, diskName, diskURI stri
 	}
 	vmName := mapNodeNameToVMName(nodeName)
 	glog.V(2).Infof("azureDisk - update(%s): vm(%s) - attach disk", c.resourceGroup, vmName)
+	c.cloud.operationPollRateLimiter.Accept()
 	respChan, errChan := c.cloud.VirtualMachinesClient.CreateOrUpdate(c.resourceGroup, vmName, newVM, nil)
 	resp := <-respChan
 	err = <-errChan
@@ -125,9 +126,9 @@ func (c *controllerCommon) AttachDisk(isManagedDisk bool, diskName, diskURI stri
 	if err != nil {
 		glog.Errorf("azureDisk - azure attach failed, err: %v", err)
 		detail := err.Error()
-		if strings.Contains(detail, errLeaseFailed) || strings.Contains(detail, errDiskBlobNotFound) {
-			// if lease cannot be acquired or disk not found, immediately detach the disk and return the original error
-			glog.Infof("azureDisk - err %s, try detach", detail)
+		if strings.Contains(detail, errLeaseFailed) {
+			// if lease cannot be acquired, immediately detach the disk and return the original error
+			glog.Infof("azureDisk - failed to acquire disk lease, try detach")
 			c.cloud.DetachDiskByName(diskName, diskURI, nodeName)
 		}
 	} else {
@@ -176,6 +177,7 @@ func (c *controllerCommon) DetachDiskByName(diskName, diskURI string, nodeName t
 	}
 	vmName := mapNodeNameToVMName(nodeName)
 	glog.V(2).Infof("azureDisk - update(%s): vm(%s) - detach disk", c.resourceGroup, vmName)
+	c.cloud.operationPollRateLimiter.Accept()
 	respChan, errChan := c.cloud.VirtualMachinesClient.CreateOrUpdate(c.resourceGroup, vmName, newVM, nil)
 	resp := <-respChan
 	err = <-errChan

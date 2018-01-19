@@ -354,7 +354,6 @@ func main() {
 	if !exitOk {
 		fmt.Printf("Failure: %d errors encountered.\n", errCount)
 		callGubernator(*gubernator)
-		arc.deleteArchive()
 		os.Exit(1)
 	}
 	callGubernator(*gubernator)

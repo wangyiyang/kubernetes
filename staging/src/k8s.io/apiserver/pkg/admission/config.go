@@ -17,7 +17,6 @@ limitations under the License.
 package admission
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -27,6 +26,8 @@ import (
 
 	"github.com/ghodss/yaml"
 	"github.com/golang/glog"
+
+	"bytes"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -126,10 +127,16 @@ type configProvider struct {
 }
 
 // GetAdmissionPluginConfigurationFor returns a reader that holds the admission plugin configuration.
-func GetAdmissionPluginConfigurationFor(pluginCfg apiserver.AdmissionPluginConfiguration) (io.Reader, error) {
-	// if there is a nest object, return it directly
-	if pluginCfg.Configuration != nil {
-		return bytes.NewBuffer(pluginCfg.Configuration.Raw), nil
+func GetAdmissionPluginConfigurationFor(pluginCfg apiserver.AdmissionPluginConfiguration, scheme *runtime.Scheme) (io.Reader, error) {
+	// if there is nothing nested in the object, we return the named location
+	obj := pluginCfg.Configuration
+	if obj != nil {
+		// serialize the configuration and build a reader for it
+		content, err := writeYAML(obj, scheme)
+		if err != nil {
+			return nil, err
+		}
+		return bytes.NewBuffer(content), nil
 	}
 	// there is nothing nested, so we delegate to path
 	if pluginCfg.Path != "" {
@@ -144,8 +151,8 @@ func GetAdmissionPluginConfigurationFor(pluginCfg apiserver.AdmissionPluginConfi
 	return nil, nil
 }
 
-// ConfigFor returns a reader for the specified plugin.
-// If no specific configuration is present, we return a nil reader.
+// GetAdmissionPluginConfiguration takes the admission configuration and returns a reader
+// for the specified plugin.  If no specific configuration is present, we return a nil reader.
 func (p configProvider) ConfigFor(pluginName string) (io.Reader, error) {
 	// there is no config, so there is no potential config
 	if p.config == nil {
@@ -156,7 +163,7 @@ func (p configProvider) ConfigFor(pluginName string) (io.Reader, error) {
 		if pluginName != pluginCfg.Name {
 			continue
 		}
-		pluginConfig, err := GetAdmissionPluginConfigurationFor(pluginCfg)
+		pluginConfig, err := GetAdmissionPluginConfigurationFor(pluginCfg, p.scheme)
 		if err != nil {
 			return nil, err
 		}

@@ -10,7 +10,6 @@ go_library(
     name = "go_default_library",
     srcs = [
         "container.go",
-        "device_plugin.go",
         "doc.go",
         "docker_util.go",
         "framework.go",
@@ -20,7 +19,7 @@ go_library(
         "simple_mount.go",
         "util.go",
     ] + select({
-        "@io_bazel_rules_go//go/platform:linux": [
+        "@io_bazel_rules_go//go/platform:linux_amd64": [
             "benchmark_util.go",
             "node_problem_detector_linux.go",
             "resource_collector.go",
@@ -33,12 +32,10 @@ go_library(
         "//pkg/features:go_default_library",
         "//pkg/kubelet/apis/cri:go_default_library",
         "//pkg/kubelet/apis/cri/v1alpha1/runtime:go_default_library",
-        "//pkg/kubelet/apis/deviceplugin/v1alpha:go_default_library",
         "//pkg/kubelet/apis/kubeletconfig:go_default_library",
         "//pkg/kubelet/apis/kubeletconfig/scheme:go_default_library",
         "//pkg/kubelet/apis/kubeletconfig/v1alpha1:go_default_library",
         "//pkg/kubelet/apis/stats/v1alpha1:go_default_library",
-        "//pkg/kubelet/cm/deviceplugin:go_default_library",
         "//pkg/kubelet/metrics:go_default_library",
         "//pkg/kubelet/remote:go_default_library",
         "//test/e2e/common:go_default_library",
@@ -61,7 +58,7 @@ go_library(
         "//vendor/k8s.io/apimachinery/pkg/util/uuid:go_default_library",
         "//vendor/k8s.io/client-go/kubernetes/scheme:go_default_library",
     ] + select({
-        "@io_bazel_rules_go//go/platform:linux": [
+        "@io_bazel_rules_go//go/platform:linux_amd64": [
             "//pkg/api/v1/node:go_default_library",
             "//pkg/util/procfs:go_default_library",
             "//test/e2e/perftype:go_default_library",
@@ -106,7 +103,7 @@ go_test(
         "summary_test.go",
         "volume_manager_test.go",
     ] + select({
-        "@io_bazel_rules_go//go/platform:linux": [
+        "@io_bazel_rules_go//go/platform:linux_amd64": [
             "container_manager_test.go",
             "density_test.go",
             "node_container_manager_test.go",
@@ -115,24 +112,22 @@ go_test(
         ],
         "//conditions:default": [],
     }),
-    embed = [":go_default_library"],
     importpath = "k8s.io/kubernetes/test/e2e_node",
+    library = ":go_default_library",
     tags = ["e2e"],
     deps = [
         "//pkg/api/v1/node:go_default_library",
         "//pkg/apis/core:go_default_library",
         "//pkg/features:go_default_library",
         "//pkg/kubelet:go_default_library",
-        "//pkg/kubelet/apis/cri:go_default_library",
-        "//pkg/kubelet/apis/cri/v1alpha1/runtime:go_default_library",
         "//pkg/kubelet/apis/kubeletconfig:go_default_library",
         "//pkg/kubelet/apis/stats/v1alpha1:go_default_library",
         "//pkg/kubelet/cm:go_default_library",
         "//pkg/kubelet/cm/cpumanager:go_default_library",
         "//pkg/kubelet/cm/cpuset:go_default_library",
         "//pkg/kubelet/container:go_default_library",
+        "//pkg/kubelet/dockershim/libdocker:go_default_library",
         "//pkg/kubelet/images:go_default_library",
-        "//pkg/kubelet/kubeletconfig:go_default_library",
         "//pkg/kubelet/kubeletconfig/status:go_default_library",
         "//pkg/kubelet/metrics:go_default_library",
         "//pkg/kubelet/types:go_default_library",
@@ -168,7 +163,7 @@ go_test(
         "//vendor/k8s.io/apimachinery/pkg/watch:go_default_library",
         "//vendor/k8s.io/client-go/kubernetes:go_default_library",
     ] + select({
-        "@io_bazel_rules_go//go/platform:linux": [
+        "@io_bazel_rules_go//go/platform:linux_amd64": [
             "//test/e2e/framework/metrics:go_default_library",
             "//test/utils:go_default_library",
             "//vendor/k8s.io/apimachinery/pkg/labels:go_default_library",

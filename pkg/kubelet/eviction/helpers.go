@@ -29,10 +29,10 @@ import (
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	"k8s.io/kubernetes/pkg/features"
 	statsapi "k8s.io/kubernetes/pkg/kubelet/apis/stats/v1alpha1"
+	"k8s.io/kubernetes/pkg/kubelet/cm"
 	evictionapi "k8s.io/kubernetes/pkg/kubelet/eviction/api"
 	"k8s.io/kubernetes/pkg/kubelet/server/stats"
-	kubetypes "k8s.io/kubernetes/pkg/kubelet/types"
-	schedulerutils "k8s.io/kubernetes/pkg/scheduler/util"
+	schedulerutils "k8s.io/kubernetes/plugin/pkg/scheduler/util"
 )
 
 const (
@@ -198,7 +198,7 @@ func parseThresholdStatement(signal evictionapi.Signal, val string) (evictionapi
 // getAllocatableThreshold returns the thresholds applicable for the allocatable configuration
 func getAllocatableThreshold(allocatableConfig []string) []evictionapi.Threshold {
 	for _, key := range allocatableConfig {
-		if key == kubetypes.NodeAllocatableEnforcementKey {
+		if key == cm.NodeAllocatableEnforcementKey {
 			return []evictionapi.Threshold{
 				{
 					Signal:   evictionapi.SignalAllocatableMemoryAvailable,
@@ -712,8 +712,7 @@ func (a byEvictionPriority) Less(i, j int) bool {
 
 // makeSignalObservations derives observations using the specified summary provider.
 func makeSignalObservations(summaryProvider stats.SummaryProvider, capacityProvider CapacityProvider, pods []*v1.Pod) (signalObservations, statsFunc, error) {
-	updateStats := true
-	summary, err := summaryProvider.Get(updateStats)
+	summary, err := summaryProvider.Get()
 	if err != nil {
 		return nil, nil, err
 	}

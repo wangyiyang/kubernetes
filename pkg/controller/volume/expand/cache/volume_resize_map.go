@@ -52,7 +52,7 @@ type volumeResizeMap struct {
 	// kube client for making API calls
 	kubeClient clientset.Interface
 	// for guarding access to pvcrs map
-	sync.Mutex
+	sync.RWMutex
 }
 
 // PVCWithResizeRequest struct defines data structure that stores state needed for
@@ -103,6 +103,9 @@ func (resizeMap *volumeResizeMap) AddPVCUpdate(pvc *v1.PersistentVolumeClaim, pv
 		return
 	}
 
+	resizeMap.Lock()
+	defer resizeMap.Unlock()
+
 	pvcSize := pvc.Spec.Resources.Requests[v1.ResourceStorage]
 	pvcStatusSize := pvc.Status.Capacity[v1.ResourceStorage]
 
@@ -118,9 +121,6 @@ func (resizeMap *volumeResizeMap) AddPVCUpdate(pvc *v1.PersistentVolumeClaim, pv
 		ExpectedSize:     pvcSize,
 		PersistentVolume: pv,
 	}
-
-	resizeMap.Lock()
-	defer resizeMap.Unlock()
 	resizeMap.pvcrs[types.UniquePVCName(pvc.UID)] = pvcRequest
 }
 
@@ -141,15 +141,18 @@ func (resizeMap *volumeResizeMap) GetPVCsWithResizeRequest() []*PVCWithResizeReq
 // DeletePVC removes given pvc object from list of pvcs that needs resizing.
 // deleting a pvc in this map doesn't affect operations that are already inflight.
 func (resizeMap *volumeResizeMap) DeletePVC(pvc *v1.PersistentVolumeClaim) {
-	pvcUniqueName := types.UniquePVCName(pvc.UID)
-	glog.V(5).Infof("Removing PVC %v from resize map", pvcUniqueName)
 	resizeMap.Lock()
 	defer resizeMap.Unlock()
+	pvcUniqueName := types.UniquePVCName(pvc.UID)
+	glog.V(5).Infof("Removing PVC %v from resize map", pvcUniqueName)
 	delete(resizeMap.pvcrs, pvcUniqueName)
 }
 
 // MarkAsResized marks a pvc as fully resized
 func (resizeMap *volumeResizeMap) MarkAsResized(pvcr *PVCWithResizeRequest, newSize resource.Quantity) error {
+	resizeMap.Lock()
+	defer resizeMap.Unlock()
+
 	emptyCondition := []v1.PersistentVolumeClaimCondition{}
 
 	err := resizeMap.updatePVCCapacityAndConditions(pvcr, newSize, emptyCondition)
@@ -162,6 +165,9 @@ func (resizeMap *volumeResizeMap) MarkAsResized(pvcr *PVCWithResizeRequest, newS
 
 // UpdatePVSize updates just pv size after cloudprovider resizing is successful
 func (resizeMap *volumeResizeMap) UpdatePVSize(pvcr *PVCWithResizeRequest, newSize resource.Quantity) error {
+	resizeMap.Lock()
+	defer resizeMap.Unlock()
+
 	oldPv := pvcr.PersistentVolume
 	pvClone := oldPv.DeepCopy()
 
@@ -195,6 +201,7 @@ func (resizeMap *volumeResizeMap) UpdatePVSize(pvcr *PVCWithResizeRequest, newSi
 }
 
 func (resizeMap *volumeResizeMap) updatePVCCapacityAndConditions(pvcr *PVCWithResizeRequest, newSize resource.Quantity, pvcConditions []v1.PersistentVolumeClaimCondition) error {
+
 	claimClone := pvcr.PVC.DeepCopy()
 
 	claimClone.Status.Capacity[v1.ResourceStorage] = newSize

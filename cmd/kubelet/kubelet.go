@@ -22,11 +22,8 @@ package main
 
 import (
 	"fmt"
-	"math/rand"
 	"os"
-	"time"
 
-	"github.com/golang/glog"
 	"github.com/spf13/pflag"
 
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
@@ -39,45 +36,25 @@ import (
 	"k8s.io/kubernetes/pkg/version/verflag"
 )
 
-func parseFlagSet(fs *pflag.FlagSet, args []string) error {
-	if err := fs.Parse(args); err != nil {
-		return err
-	}
-	fs.VisitAll(func(flag *pflag.Flag) {
-		glog.V(2).Infof("FLAG: --%s=%q", flag.Name, flag.Value)
-	})
-	return nil
-}
-
 func die(err error) {
 	fmt.Fprintf(os.Stderr, "error: %v\n", err)
 	os.Exit(1)
 }
 
 func main() {
-	rand.Seed(time.Now().UTC().UnixNano())
-
-	fs := pflag.NewFlagSet(os.Args[0], pflag.ExitOnError)
-	// set the normalize func, similar to k8s.io/apiserver/pkg/util/flag/flags.go:InitFlags
-	fs.SetNormalizeFunc(flag.WordSepNormalizeFunc)
-	// explicitly add flags from libs that register global flags
-	options.AddGlobalFlags(fs)
-
-	// register kubelet flags
+	// construct KubeletFlags object and register command line flags mapping
 	kubeletFlags := options.NewKubeletFlags()
-	kubeletFlags.AddFlags(fs)
+	kubeletFlags.AddFlags(pflag.CommandLine)
 
-	// register kubelet config flags
+	// construct KubeletConfiguration object and register command line flags mapping
 	defaultConfig, err := options.NewKubeletConfiguration()
 	if err != nil {
 		die(err)
 	}
-	options.AddKubeletConfigFlags(fs, defaultConfig)
+	options.AddKubeletConfigFlags(pflag.CommandLine, defaultConfig)
 
-	// parse flags
-	if err := parseFlagSet(fs, os.Args[1:]); err != nil {
-		die(err)
-	}
+	// parse the command line flags into the respective objects
+	flag.InitFlags()
 
 	// initialize logging and defer flush
 	logs.InitLogs()
@@ -98,7 +75,7 @@ func main() {
 	// bootstrap the kubelet config controller, app.BootstrapKubeletConfigController will check
 	// feature gates and only turn on relevant parts of the controller
 	kubeletConfig, kubeletConfigController, err := app.BootstrapKubeletConfigController(
-		defaultConfig, kubeletFlags.KubeletConfigFile, kubeletFlags.DynamicConfigDir)
+		defaultConfig, kubeletFlags.InitConfigDir, kubeletFlags.DynamicConfigDir)
 	if err != nil {
 		die(err)
 	}

@@ -131,7 +131,6 @@ func (client WebhooksClient) CreatePreparer(resourceGroupName string, registryNa
 func (client WebhooksClient) CreateSender(req *http.Request) (*http.Response, error) {
 	return autorest.SendWithSender(client,
 		req,
-		azure.DoRetryWithRegistration(client.Client),
 		azure.DoPollForAsynchronous(client.PollingDelay))
 }
 
@@ -230,7 +229,6 @@ func (client WebhooksClient) DeletePreparer(resourceGroupName string, registryNa
 func (client WebhooksClient) DeleteSender(req *http.Request) (*http.Response, error) {
 	return autorest.SendWithSender(client,
 		req,
-		azure.DoRetryWithRegistration(client.Client),
 		azure.DoPollForAsynchronous(client.PollingDelay))
 }
 
@@ -309,9 +307,7 @@ func (client WebhooksClient) GetPreparer(resourceGroupName string, registryName 
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client WebhooksClient) GetSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client,
-		req,
-		azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req)
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -390,9 +386,7 @@ func (client WebhooksClient) GetCallbackConfigPreparer(resourceGroupName string,
 // GetCallbackConfigSender sends the GetCallbackConfig request. The method will close the
 // http.Response Body if it receives an error.
 func (client WebhooksClient) GetCallbackConfigSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client,
-		req,
-		azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req)
 }
 
 // GetCallbackConfigResponder handles the response to the GetCallbackConfig request. The method always
@@ -466,9 +460,7 @@ func (client WebhooksClient) ListPreparer(resourceGroupName string, registryName
 // ListSender sends the List request. The method will close the
 // http.Response Body if it receives an error.
 func (client WebhooksClient) ListSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client,
-		req,
-		azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req)
 }
 
 // ListResponder handles the response to the List request. The method always
@@ -616,9 +608,7 @@ func (client WebhooksClient) ListEventsPreparer(resourceGroupName string, regist
 // ListEventsSender sends the ListEvents request. The method will close the
 // http.Response Body if it receives an error.
 func (client WebhooksClient) ListEventsSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client,
-		req,
-		azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req)
 }
 
 // ListEventsResponder handles the response to the ListEvents request. The method always
@@ -766,9 +756,7 @@ func (client WebhooksClient) PingPreparer(resourceGroupName string, registryName
 // PingSender sends the Ping request. The method will close the
 // http.Response Body if it receives an error.
 func (client WebhooksClient) PingSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client,
-		req,
-		azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req)
 }
 
 // PingResponder handles the response to the Ping request. The method always
@@ -870,7 +858,6 @@ func (client WebhooksClient) UpdatePreparer(resourceGroupName string, registryNa
 func (client WebhooksClient) UpdateSender(req *http.Request) (*http.Response, error) {
 	return autorest.SendWithSender(client,
 		req,
-		azure.DoRetryWithRegistration(client.Client),
 		azure.DoPollForAsynchronous(client.PollingDelay))
 }
 

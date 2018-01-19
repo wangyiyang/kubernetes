@@ -23,10 +23,10 @@ import (
 	"strings"
 	"testing"
 
-	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest/fake"
+	api "k8s.io/kubernetes/pkg/apis/core"
 	cmdtesting "k8s.io/kubernetes/pkg/kubectl/cmd/testing"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 )
@@ -164,7 +164,7 @@ func TestLabelFunc(t *testing.T) {
 		expectErr bool
 	}{
 		{
-			obj: &v1.Pod{
+			obj: &api.Pod{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"a": "b"},
 				},
@@ -173,41 +173,41 @@ func TestLabelFunc(t *testing.T) {
 			expectErr: true,
 		},
 		{
-			obj: &v1.Pod{
+			obj: &api.Pod{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"a": "b"},
 				},
 			},
 			labels:    map[string]string{"a": "c"},
 			overwrite: true,
-			expected: &v1.Pod{
+			expected: &api.Pod{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"a": "c"},
 				},
 			},
 		},
 		{
-			obj: &v1.Pod{
+			obj: &api.Pod{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"a": "b"},
 				},
 			},
 			labels: map[string]string{"c": "d"},
-			expected: &v1.Pod{
+			expected: &api.Pod{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"a": "b", "c": "d"},
 				},
 			},
 		},
 		{
-			obj: &v1.Pod{
+			obj: &api.Pod{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"a": "b"},
 				},
 			},
 			labels:  map[string]string{"c": "d"},
 			version: "2",
-			expected: &v1.Pod{
+			expected: &api.Pod{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels:          map[string]string{"a": "b", "c": "d"},
 					ResourceVersion: "2",
@@ -215,28 +215,28 @@ func TestLabelFunc(t *testing.T) {
 			},
 		},
 		{
-			obj: &v1.Pod{
+			obj: &api.Pod{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"a": "b"},
 				},
 			},
 			labels: map[string]string{},
 			remove: []string{"a"},
-			expected: &v1.Pod{
+			expected: &api.Pod{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{},
 				},
 			},
 		},
 		{
-			obj: &v1.Pod{
+			obj: &api.Pod{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"a": "b", "c": "d"},
 				},
 			},
 			labels: map[string]string{"e": "f"},
 			remove: []string{"a"},
-			expected: &v1.Pod{
+			expected: &api.Pod{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
 						"c": "d",
@@ -246,11 +246,11 @@ func TestLabelFunc(t *testing.T) {
 			},
 		},
 		{
-			obj: &v1.Pod{
+			obj: &api.Pod{
 				ObjectMeta: metav1.ObjectMeta{},
 			},
 			labels: map[string]string{"a": "b"},
-			expected: &v1.Pod{
+			expected: &api.Pod{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"a": "b"},
 				},

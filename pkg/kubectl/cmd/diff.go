@@ -44,7 +44,7 @@ var (
 		Diff configurations specified by filename or stdin between their local,
 		last-applied, live and/or "merged" versions.
 
-		LOCAL and LIVE versions are diffed by default. Other available keywords
+		LOCAL and LIVE versions are diffed by default. Other availble keywords
 		are MERGED and LAST.
 
 		Output is always YAML.
@@ -109,8 +109,7 @@ func NewCmdDiff(f cmdutil.Factory, stdout, stderr io.Writer) *cobra.Command {
 		Stderr: stderr,
 	}
 	cmd := &cobra.Command{
-		Use: "diff -f FILENAME",
-		DisableFlagsInUseLine: true,
+		Use:     "diff -f FILENAME",
 		Short:   i18n.T("Diff different versions of configurations"),
 		Long:    diffLong,
 		Example: diffExample,

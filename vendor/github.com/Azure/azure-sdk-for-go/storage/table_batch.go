@@ -26,7 +26,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/satori/go.uuid"
+	"github.com/satori/uuid"
 )
 
 // Operation type. Insert, Delete, Replace etc.

@@ -69,8 +69,7 @@ func NewCmdRolloutResume(f cmdutil.Factory, out io.Writer) *cobra.Command {
 	argAliases := kubectl.ResourceAliases(validArgs)
 
 	cmd := &cobra.Command{
-		Use: "resume RESOURCE",
-		DisableFlagsInUseLine: true,
+		Use:     "resume RESOURCE",
 		Short:   i18n.T("Resume a paused resource"),
 		Long:    resume_long,
 		Example: resume_example,

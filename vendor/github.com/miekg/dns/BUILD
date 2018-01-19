@@ -32,52 +32,17 @@ go_library(
         "tlsa.go",
         "tsig.go",
         "types.go",
+        "udp.go",
+        "udp_other.go",
         "update.go",
         "xfr.go",
         "zmsg.go",
         "ztypes.go",
     ] + select({
-        "@io_bazel_rules_go//go/platform:android": [
-            "udp.go",
-            "udp_other.go",
-        ],
-        "@io_bazel_rules_go//go/platform:darwin": [
-            "udp.go",
-            "udp_other.go",
-        ],
-        "@io_bazel_rules_go//go/platform:dragonfly": [
-            "udp.go",
-            "udp_other.go",
-        ],
-        "@io_bazel_rules_go//go/platform:freebsd": [
-            "udp.go",
-            "udp_other.go",
-        ],
-        "@io_bazel_rules_go//go/platform:linux": [
-            "udp.go",
+        "@io_bazel_rules_go//go/platform:linux_amd64": [
             "udp_linux.go",
         ],
-        "@io_bazel_rules_go//go/platform:nacl": [
-            "udp.go",
-            "udp_other.go",
-        ],
-        "@io_bazel_rules_go//go/platform:netbsd": [
-            "udp.go",
-            "udp_other.go",
-        ],
-        "@io_bazel_rules_go//go/platform:openbsd": [
-            "udp.go",
-            "udp_other.go",
-        ],
-        "@io_bazel_rules_go//go/platform:plan9": [
-            "udp_plan9.go",
-        ],
-        "@io_bazel_rules_go//go/platform:solaris": [
-            "udp.go",
-            "udp_other.go",
-        ],
-        "@io_bazel_rules_go//go/platform:windows": [
-            "udp_other.go",
+        "@io_bazel_rules_go//go/platform:windows_amd64": [
             "udp_windows.go",
         ],
         "//conditions:default": [],

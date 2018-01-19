@@ -35,7 +35,6 @@ import (
 	"github.com/docker/docker/pkg/mount"
 	"github.com/golang/glog"
 	"github.com/google/cadvisor/devicemapper"
-	"github.com/google/cadvisor/utils"
 	dockerutil "github.com/google/cadvisor/utils/docker"
 	zfs "github.com/mistifyio/go-zfs"
 )
@@ -410,14 +409,10 @@ func (self *RealFsInfo) GetFsInfoForPath(mountSet map[string]struct{}) ([]Fs, er
 				fs.Type = ZFS
 			default:
 				var inodes, inodesFree uint64
-				if utils.FileExists(partition.mountpoint) {
-					fs.Capacity, fs.Free, fs.Available, inodes, inodesFree, err = getVfsStats(partition.mountpoint)
-					fs.Inodes = &inodes
-					fs.InodesFree = &inodesFree
-					fs.Type = VFS
-				} else {
-					glog.V(4).Infof("unable to determine file system type, partition mountpoint does not exist: %v", partition.mountpoint)
-				}
+				fs.Capacity, fs.Free, fs.Available, inodes, inodesFree, err = getVfsStats(partition.mountpoint)
+				fs.Inodes = &inodes
+				fs.InodesFree = &inodesFree
+				fs.Type = VFS
 			}
 			if err != nil {
 				glog.Errorf("Stat fs failed. Error: %v", err)

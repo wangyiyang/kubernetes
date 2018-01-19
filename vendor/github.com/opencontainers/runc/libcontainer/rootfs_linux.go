@@ -13,11 +13,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cyphar/filepath-securejoin"
+	"github.com/docker/docker/pkg/mount"
+	"github.com/docker/docker/pkg/symlink"
 	"github.com/mrunalp/fileutils"
 	"github.com/opencontainers/runc/libcontainer/cgroups"
 	"github.com/opencontainers/runc/libcontainer/configs"
-	"github.com/opencontainers/runc/libcontainer/mount"
 	"github.com/opencontainers/runc/libcontainer/system"
 	libcontainerUtils "github.com/opencontainers/runc/libcontainer/utils"
 	"github.com/opencontainers/selinux/go-selinux/label"
@@ -40,8 +40,7 @@ func needsSetupDev(config *configs.Config) bool {
 // prepareRootfs sets up the devices, mount points, and filesystems for use
 // inside a new mount namespace. It doesn't set anything as ro. You must call
 // finalizeRootfs after this function to finish setting up the rootfs.
-func prepareRootfs(pipe io.ReadWriter, iConfig *initConfig) (err error) {
-	config := iConfig.Config
+func prepareRootfs(pipe io.ReadWriter, config *configs.Config) (err error) {
 	if err := prepareRoot(config); err != nil {
 		return newSystemErrorWithCause(err, "preparing rootfs")
 	}
@@ -81,7 +80,6 @@ func prepareRootfs(pipe io.ReadWriter, iConfig *initConfig) (err error) {
 	// The hooks are run after the mounts are setup, but before we switch to the new
 	// root, so that the old root is still available in the hooks for any mount
 	// manipulations.
-	// Note that iConfig.Cwd is not guaranteed to exist here.
 	if err := syncParentHooks(pipe); err != nil {
 		return err
 	}
@@ -110,14 +108,6 @@ func prepareRootfs(pipe io.ReadWriter, iConfig *initConfig) (err error) {
 	if setupDev {
 		if err := reOpenDevNull(); err != nil {
 			return newSystemErrorWithCause(err, "reopening /dev/null inside container")
-		}
-	}
-
-	if cwd := iConfig.Cwd; cwd != "" {
-		// Note that spec.Process.Cwd can contain unclean value like  "../../../../foo/bar...".
-		// However, we are safe to call MkDirAll directly because we are in the jail here.
-		if err := os.MkdirAll(cwd, 0755); err != nil {
-			return err
 		}
 	}
 
@@ -240,7 +230,7 @@ func mountToRootfs(m *configs.Mount, rootfs, mountLabel string) error {
 		// any previous mounts can invalidate the next mount's destination.
 		// this can happen when a user specifies mounts within other mounts to cause breakouts or other
 		// evil stuff to try to escape the container's rootfs.
-		if dest, err = securejoin.SecureJoin(rootfs, m.Destination); err != nil {
+		if dest, err = symlink.FollowSymlinkInScope(dest, rootfs); err != nil {
 			return err
 		}
 		if err := checkMountDestination(rootfs, dest); err != nil {
@@ -328,7 +318,7 @@ func mountToRootfs(m *configs.Mount, rootfs, mountLabel string) error {
 		// this can happen when a user specifies mounts within other mounts to cause breakouts or other
 		// evil stuff to try to escape the container's rootfs.
 		var err error
-		if dest, err = securejoin.SecureJoin(rootfs, m.Destination); err != nil {
+		if dest, err = symlink.FollowSymlinkInScope(dest, rootfs); err != nil {
 			return err
 		}
 		if err := checkMountDestination(rootfs, dest); err != nil {
@@ -678,12 +668,9 @@ func pivotRoot(rootfs string) error {
 		return err
 	}
 
-	// Make oldroot rslave to make sure our unmounts don't propagate to the
-	// host (and thus bork the machine). We don't use rprivate because this is
-	// known to cause issues due to races where we still have a reference to a
-	// mount while a process in the host namespace are trying to operate on
-	// something they think has no mounts (devicemapper in particular).
-	if err := unix.Mount("", ".", "", unix.MS_SLAVE|unix.MS_REC, ""); err != nil {
+	// Make oldroot rprivate to make sure our unmounts don't propagate to the
+	// host (and thus bork the machine).
+	if err := unix.Mount("", ".", "", unix.MS_PRIVATE|unix.MS_REC, ""); err != nil {
 		return err
 	}
 	// Preform the unmount. MNT_DETACH allows us to unmount /proc/self/cwd.
@@ -746,14 +733,7 @@ func remountReadonly(m *configs.Mount) error {
 		flags = m.Flags
 	)
 	for i := 0; i < 5; i++ {
-		// There is a special case in the kernel for
-		// MS_REMOUNT | MS_BIND, which allows us to change only the
-		// flags even as an unprivileged user (i.e. user namespace)
-		// assuming we don't drop any security related flags (nodev,
-		// nosuid, etc.). So, let's use that case so that we can do
-		// this re-mount without failing in a userns.
-		flags |= unix.MS_REMOUNT | unix.MS_BIND | unix.MS_RDONLY
-		if err := unix.Mount("", dest, "", uintptr(flags), ""); err != nil {
+		if err := unix.Mount("", dest, "", uintptr(flags|unix.MS_REMOUNT|unix.MS_RDONLY), ""); err != nil {
 			switch err {
 			case unix.EBUSY:
 				time.Sleep(100 * time.Millisecond)

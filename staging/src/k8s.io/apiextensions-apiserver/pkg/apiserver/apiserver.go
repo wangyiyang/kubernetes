@@ -177,6 +177,7 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget)
 		versionDiscoveryHandler,
 		groupDiscoveryHandler,
 		s.GenericAPIServer.RequestContextMapper(),
+		s.Informers.Apiextensions().InternalVersion().CustomResourceDefinitions().Lister(),
 		s.Informers.Apiextensions().InternalVersion().CustomResourceDefinitions(),
 		delegateHandler,
 		c.ExtraConfig.CRDRESTOptionsGetter,

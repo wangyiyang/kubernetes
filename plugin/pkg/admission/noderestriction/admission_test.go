@@ -25,6 +25,7 @@ import (
 	"k8s.io/apiserver/pkg/authentication/user"
 	api "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/policy"
+	policyapi "k8s.io/kubernetes/pkg/apis/policy"
 	"k8s.io/kubernetes/pkg/auth/nodeidentifier"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	coreinternalversion "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
@@ -81,7 +82,7 @@ func Test_nodePlugin_Admit(t *testing.T) {
 
 		podResource  = api.Resource("pods").WithVersion("v1")
 		podKind      = api.Kind("Pod").WithVersion("v1")
-		evictionKind = policy.Kind("Eviction").WithVersion("v1beta1")
+		evictionKind = policyapi.Kind("Eviction").WithVersion("v1beta1")
 
 		nodeResource = api.Resource("nodes").WithVersion("v1")
 		nodeKind     = api.Kind("Node").WithVersion("v1")

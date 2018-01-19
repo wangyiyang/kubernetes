@@ -44,7 +44,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	apiservoptions "k8s.io/kubernetes/cmd/kube-apiserver/app/options"
 	cmoptions "k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
-	schedulerapp "k8s.io/kubernetes/cmd/kube-scheduler/app"
 	kubeadmapi "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm"
 	kubeadmconstants "k8s.io/kubernetes/cmd/kubeadm/app/constants"
 	"k8s.io/kubernetes/pkg/apis/core/validation"
@@ -53,6 +52,7 @@ import (
 	"k8s.io/kubernetes/pkg/util/initsystem"
 	versionutil "k8s.io/kubernetes/pkg/util/version"
 	kubeadmversion "k8s.io/kubernetes/pkg/version"
+	schedulerapp "k8s.io/kubernetes/plugin/cmd/kube-scheduler/app"
 	"k8s.io/kubernetes/test/e2e_node/system"
 	utilsexec "k8s.io/utils/exec"
 )
@@ -525,12 +525,9 @@ func (eac ExtraArgsCheck) Check() (warnings, errors []error) {
 		warnings = append(warnings, argsCheck("kube-controller-manager", eac.ControllerManagerExtraArgs, flags)...)
 	}
 	if len(eac.SchedulerExtraArgs) > 0 {
-		opts, err := schedulerapp.NewOptions()
-		if err != nil {
-			warnings = append(warnings, err)
-		}
+		command := schedulerapp.NewSchedulerCommand()
 		flags := pflag.NewFlagSet("", pflag.ContinueOnError)
-		opts.AddFlags(flags)
+		flags.AddFlagSet(command.Flags())
 		warnings = append(warnings, argsCheck("kube-scheduler", eac.SchedulerExtraArgs, flags)...)
 	}
 	return warnings, nil

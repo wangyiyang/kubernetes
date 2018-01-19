@@ -64,8 +64,7 @@ func NewCmdReplace(f cmdutil.Factory, out io.Writer) *cobra.Command {
 	options := &resource.FilenameOptions{}
 
 	cmd := &cobra.Command{
-		Use: "replace -f FILENAME",
-		DisableFlagsInUseLine: true,
+		Use:     "replace -f FILENAME",
 		Short:   i18n.T("Replace a resource by filename or stdin"),
 		Long:    replaceLong,
 		Example: replaceExample,

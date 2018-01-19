@@ -32,7 +32,6 @@ import (
 
 const configDir = "/test-config-dir"
 const relativePath = "relative/path/test"
-const kubeletFile = "kubelet"
 
 func TestLoad(t *testing.T) {
 	cases := []struct {
@@ -137,13 +136,12 @@ podManifestPath: %s`, relativePath)),
 	for _, c := range cases {
 		t.Run(c.desc, func(t *testing.T) {
 			fs := utilfs.NewFakeFs()
-			path := filepath.Join(configDir, kubeletFile)
 			if c.file != nil {
-				if err := addFile(fs, path, *c.file); err != nil {
+				if err := addFile(fs, filepath.Join(configDir, kubeletFile), *c.file); err != nil {
 					t.Fatalf("unexpected error: %v", err)
 				}
 			}
-			loader, err := NewFsLoader(fs, path)
+			loader, err := NewFsLoader(fs, configDir)
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}

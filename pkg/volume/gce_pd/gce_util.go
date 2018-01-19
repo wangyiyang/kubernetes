@@ -81,8 +81,9 @@ func (gceutil *GCEDiskUtil) CreateVolume(c *gcePersistentDiskProvisioner) (strin
 
 	name := volume.GenerateVolumeName(c.options.ClusterName, c.options.PVName, 63) // GCE PD name can have up to 63 characters
 	capacity := c.options.PVC.Spec.Resources.Requests[v1.ResourceName(v1.ResourceStorage)]
-	// GCE PDs are allocated in chunks of GBs (not GiBs)
-	requestGB := volume.RoundUpToGB(capacity)
+	requestBytes := capacity.Value()
+	// GCE works with gigabytes, convert to GiB with rounding up
+	requestGB := volume.RoundUpSize(requestBytes, 1024*1024*1024)
 
 	// Apply Parameters (case-insensitive). We leave validation of
 	// the values to the cloud provider.

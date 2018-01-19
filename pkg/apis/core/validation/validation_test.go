@@ -469,7 +469,7 @@ func TestValidatePersistentVolumeSourceUpdate(t *testing.T) {
 	validPvSourceNoUpdate := validVolume.DeepCopy()
 	invalidPvSourceUpdateType := validVolume.DeepCopy()
 	invalidPvSourceUpdateType.Spec.PersistentVolumeSource = core.PersistentVolumeSource{
-		FlexVolume: &core.FlexPersistentVolumeSource{
+		FlexVolume: &core.FlexVolumeSource{
 			Driver: "kubernetes.io/blue",
 			FSType: "ext4",
 		},
@@ -3351,14 +3351,10 @@ func TestAlphaHugePagesIsolation(t *testing.T) {
 						Name: "ctr", Image: "image", ImagePullPolicy: "IfNotPresent", TerminationMessagePolicy: "File",
 						Resources: core.ResourceRequirements{
 							Requests: core.ResourceList{
-								core.ResourceName(core.ResourceCPU):    resource.MustParse("10"),
-								core.ResourceName(core.ResourceMemory): resource.MustParse("10G"),
-								core.ResourceName("hugepages-2Mi"):     resource.MustParse("1Gi"),
+								core.ResourceName("hugepages-2Mi"): resource.MustParse("1Gi"),
 							},
 							Limits: core.ResourceList{
-								core.ResourceName(core.ResourceCPU):    resource.MustParse("10"),
-								core.ResourceName(core.ResourceMemory): resource.MustParse("10G"),
-								core.ResourceName("hugepages-2Mi"):     resource.MustParse("1Gi"),
+								core.ResourceName("hugepages-2Mi"): resource.MustParse("1Gi"),
 							},
 						},
 					},
@@ -3370,26 +3366,6 @@ func TestAlphaHugePagesIsolation(t *testing.T) {
 	}
 	failureCases := []core.Pod{
 		{ // Basic fields.
-			ObjectMeta: metav1.ObjectMeta{Name: "hugepages-requireCpuOrMemory", Namespace: "ns"},
-			Spec: core.PodSpec{
-				Containers: []core.Container{
-					{
-						Name: "ctr", Image: "image", ImagePullPolicy: "IfNotPresent", TerminationMessagePolicy: "File",
-						Resources: core.ResourceRequirements{
-							Requests: core.ResourceList{
-								core.ResourceName("hugepages-2Mi"): resource.MustParse("1Gi"),
-							},
-							Limits: core.ResourceList{
-								core.ResourceName("hugepages-2Mi"): resource.MustParse("1Gi"),
-							},
-						},
-					},
-				},
-				RestartPolicy: core.RestartPolicyAlways,
-				DNSPolicy:     core.DNSClusterFirst,
-			},
-		},
-		{ // Basic fields.
 			ObjectMeta: metav1.ObjectMeta{Name: "hugepages-shared", Namespace: "ns"},
 			Spec: core.PodSpec{
 				Containers: []core.Container{
@@ -3397,14 +3373,10 @@ func TestAlphaHugePagesIsolation(t *testing.T) {
 						Name: "ctr", Image: "image", ImagePullPolicy: "IfNotPresent", TerminationMessagePolicy: "File",
 						Resources: core.ResourceRequirements{
 							Requests: core.ResourceList{
-								core.ResourceName(core.ResourceCPU):    resource.MustParse("10"),
-								core.ResourceName(core.ResourceMemory): resource.MustParse("10G"),
-								core.ResourceName("hugepages-2Mi"):     resource.MustParse("1Gi"),
+								core.ResourceName("hugepages-2Mi"): resource.MustParse("1Gi"),
 							},
 							Limits: core.ResourceList{
-								core.ResourceName(core.ResourceCPU):    resource.MustParse("10"),
-								core.ResourceName(core.ResourceMemory): resource.MustParse("10G"),
-								core.ResourceName("hugepages-2Mi"):     resource.MustParse("2Gi"),
+								core.ResourceName("hugepages-2Mi"): resource.MustParse("2Gi"),
 							},
 						},
 					},
@@ -3421,15 +3393,12 @@ func TestAlphaHugePagesIsolation(t *testing.T) {
 						Name: "ctr", Image: "image", ImagePullPolicy: "IfNotPresent", TerminationMessagePolicy: "File",
 						Resources: core.ResourceRequirements{
 							Requests: core.ResourceList{
-								core.ResourceName(core.ResourceCPU):    resource.MustParse("10"),
-								core.ResourceName(core.ResourceMemory): resource.MustParse("10G"),
-								core.ResourceName("hugepages-1Gi"):     resource.MustParse("2Gi"),
+								core.ResourceName("hugepages-2Mi"): resource.MustParse("1Gi"),
+								core.ResourceName("hugepages-1Gi"): resource.MustParse("2Gi"),
 							},
 							Limits: core.ResourceList{
-								core.ResourceName(core.ResourceCPU):    resource.MustParse("10"),
-								core.ResourceName(core.ResourceMemory): resource.MustParse("10G"),
-								core.ResourceName("hugepages-2Mi"):     resource.MustParse("1Gi"),
-								core.ResourceName("hugepages-1Gi"):     resource.MustParse("2Gi"),
+								core.ResourceName("hugepages-2Mi"): resource.MustParse("1Gi"),
+								core.ResourceName("hugepages-1Gi"): resource.MustParse("2Gi"),
 							},
 						},
 					},
@@ -6334,7 +6303,7 @@ func TestValidatePod(t *testing.T) {
 			},
 		},
 		"invalid node selector requirement in node affinity, operator can't be null": {
-			expectedError: "spec.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[0].operator",
+			expectedError: "spec.affinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[0].operator",
 			spec: core.Pod{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "123",
@@ -6385,7 +6354,7 @@ func TestValidatePod(t *testing.T) {
 			},
 		},
 		"invalid requiredDuringSchedulingIgnoredDuringExecution node selector, nodeSelectorTerms must have at least one term": {
-			expectedError: "spec.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms",
+			expectedError: "spec.affinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms",
 			spec: core.Pod{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "123",
@@ -6401,7 +6370,7 @@ func TestValidatePod(t *testing.T) {
 			},
 		},
 		"invalid requiredDuringSchedulingIgnoredDuringExecution node selector term, matchExpressions must have at least one node selector requirement": {
-			expectedError: "spec.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions",
+			expectedError: "spec.affinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions",
 			spec: core.Pod{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "123",
@@ -6870,28 +6839,6 @@ func TestValidatePod(t *testing.T) {
 								},
 								Limits: core.ResourceList{
 									core.ResourceName("example.com/a"): resource.MustParse("1"),
-								},
-							},
-						},
-					},
-					RestartPolicy: core.RestartPolicyAlways,
-					DNSPolicy:     core.DNSClusterFirst,
-				},
-			},
-		},
-		"invalid extended resource requirement without limit": {
-			expectedError: "Limit must be set",
-			spec: core.Pod{
-				ObjectMeta: metav1.ObjectMeta{Name: "123", Namespace: "ns"},
-				Spec: core.PodSpec{
-					Containers: []core.Container{
-						{
-							Name:            "invalid",
-							Image:           "image",
-							ImagePullPolicy: "IfNotPresent",
-							Resources: core.ResourceRequirements{
-								Requests: core.ResourceList{
-									core.ResourceName("example.com/a"): resource.MustParse("2"),
 								},
 							},
 						},

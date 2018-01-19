@@ -21,6 +21,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 	"sync"
 
 	"k8s.io/apimachinery/pkg/types"
@@ -60,11 +61,10 @@ func (az *Cloud) GetZone() (cloudprovider.Zone, error) {
 // This is particularly useful in external cloud providers where the kubelet
 // does not initialize node data.
 func (az *Cloud) GetZoneByProviderID(providerID string) (cloudprovider.Zone, error) {
-	nodeName, err := az.vmSet.GetNodeNameByProviderID(providerID)
+	nodeName, err := splitProviderID(providerID)
 	if err != nil {
 		return cloudprovider.Zone{}, err
 	}
-
 	return az.GetZoneByNodeName(nodeName)
 }
 
@@ -72,7 +72,19 @@ func (az *Cloud) GetZoneByProviderID(providerID string) (cloudprovider.Zone, err
 // This is particularly useful in external cloud providers where the kubelet
 // does not initialize node data.
 func (az *Cloud) GetZoneByNodeName(nodeName types.NodeName) (cloudprovider.Zone, error) {
-	return az.vmSet.GetZoneByNodeName(string(nodeName))
+	vm, err := az.getVirtualMachine(nodeName)
+
+	if err != nil {
+		return cloudprovider.Zone{}, err
+	}
+
+	failureDomain := strconv.Itoa(int(*vm.VirtualMachineProperties.InstanceView.PlatformFaultDomain))
+
+	zone := cloudprovider.Zone{
+		FailureDomain: failureDomain,
+		Region:        *(vm.Location),
+	}
+	return zone, nil
 }
 
 func fetchFaultDomain() (*string, error) {

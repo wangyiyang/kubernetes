@@ -20,7 +20,6 @@ package internalversion
 
 import (
 	"fmt"
-
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	cache "k8s.io/client-go/tools/cache"
 	wardle "k8s.io/sample-apiserver/pkg/apis/wardle"

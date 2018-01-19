@@ -81,8 +81,8 @@ var (
 	kubectlExeRegexp = regexp.MustCompile(`^.*((?i:kubectl\.exe))`)
 )
 
-func init() {
-	// Register all metrics.
+// Register all metrics.
+func Register() {
 	prometheus.MustRegister(requestCounter)
 	prometheus.MustRegister(longRunningRequestGauge)
 	prometheus.MustRegister(requestLatencies)

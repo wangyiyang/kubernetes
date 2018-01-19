@@ -5,31 +5,13 @@ go_library(
     srcs = [
         "osext.go",
     ] + select({
-        "@io_bazel_rules_go//go/platform:darwin": [
+        "@io_bazel_rules_go//go/platform:darwin_amd64": [
             "osext_sysctl.go",
         ],
-        "@io_bazel_rules_go//go/platform:dragonfly": [
+        "@io_bazel_rules_go//go/platform:linux_amd64": [
             "osext_procfs.go",
         ],
-        "@io_bazel_rules_go//go/platform:freebsd": [
-            "osext_sysctl.go",
-        ],
-        "@io_bazel_rules_go//go/platform:linux": [
-            "osext_procfs.go",
-        ],
-        "@io_bazel_rules_go//go/platform:netbsd": [
-            "osext_procfs.go",
-        ],
-        "@io_bazel_rules_go//go/platform:openbsd": [
-            "osext_procfs.go",
-        ],
-        "@io_bazel_rules_go//go/platform:plan9": [
-            "osext_plan9.go",
-        ],
-        "@io_bazel_rules_go//go/platform:solaris": [
-            "osext_procfs.go",
-        ],
-        "@io_bazel_rules_go//go/platform:windows": [
+        "@io_bazel_rules_go//go/platform:windows_amd64": [
             "osext_windows.go",
         ],
         "//conditions:default": [],

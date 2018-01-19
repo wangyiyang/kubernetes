@@ -226,18 +226,18 @@ type testEnvelopeService struct {
 	disabled bool
 }
 
-func (t *testEnvelopeService) Decrypt(data []byte) ([]byte, error) {
+func (t *testEnvelopeService) Decrypt(data string) ([]byte, error) {
 	if t.disabled {
 		return nil, fmt.Errorf("Envelope service was disabled")
 	}
-	return base64.StdEncoding.DecodeString(string(data))
+	return base64.StdEncoding.DecodeString(data)
 }
 
-func (t *testEnvelopeService) Encrypt(data []byte) ([]byte, error) {
+func (t *testEnvelopeService) Encrypt(data []byte) (string, error) {
 	if t.disabled {
-		return nil, fmt.Errorf("Envelope service was disabled")
+		return "", fmt.Errorf("Envelope service was disabled")
 	}
-	return []byte(base64.StdEncoding.EncodeToString(data)), nil
+	return base64.StdEncoding.EncodeToString(data), nil
 }
 
 func (t *testEnvelopeService) SetDisabledStatus(status bool) {

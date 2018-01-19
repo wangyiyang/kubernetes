@@ -33,6 +33,7 @@ import (
 	"k8s.io/client-go/tools/record"
 	statsapi "k8s.io/kubernetes/pkg/kubelet/apis/stats/v1alpha1"
 	"k8s.io/kubernetes/pkg/kubelet/container"
+	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
 	"k8s.io/kubernetes/pkg/kubelet/events"
 )
 
@@ -54,7 +55,7 @@ type ImageGCManager interface {
 	// Start async garbage collection of images.
 	Start()
 
-	GetImageList() ([]container.Image, error)
+	GetImageList() ([]kubecontainer.Image, error)
 
 	// Delete all unused images and returns the number of bytes freed. The number of bytes freed is always returned.
 	DeleteUnusedImages() (int64, error)
@@ -107,18 +108,18 @@ type imageCache struct {
 	// sync.RWMutex is the mutex protects the image cache.
 	sync.RWMutex
 	// images is the image cache.
-	images []container.Image
+	images []kubecontainer.Image
 }
 
 // set updates image cache.
-func (i *imageCache) set(images []container.Image) {
+func (i *imageCache) set(images []kubecontainer.Image) {
 	i.Lock()
 	defer i.Unlock()
 	i.images = images
 }
 
 // get gets image list from image cache.
-func (i *imageCache) get() []container.Image {
+func (i *imageCache) get() []kubecontainer.Image {
 	i.RLock()
 	defer i.RUnlock()
 	return i.images
@@ -167,7 +168,7 @@ func (im *realImageGCManager) Start() {
 		if im.initialized {
 			ts = time.Now()
 		}
-		_, err := im.detectImages(ts)
+		err := im.detectImages(ts)
 		if err != nil {
 			glog.Warningf("[imageGCManager] Failed to monitor images: %v", err)
 		} else {
@@ -189,23 +190,22 @@ func (im *realImageGCManager) Start() {
 }
 
 // Get a list of images on this node
-func (im *realImageGCManager) GetImageList() ([]container.Image, error) {
+func (im *realImageGCManager) GetImageList() ([]kubecontainer.Image, error) {
 	return im.imageCache.get(), nil
 }
 
-func (im *realImageGCManager) detectImages(detectTime time.Time) (sets.String, error) {
-	imagesInUse := sets.NewString()
-
+func (im *realImageGCManager) detectImages(detectTime time.Time) error {
 	images, err := im.runtime.ListImages()
 	if err != nil {
-		return imagesInUse, err
+		return err
 	}
 	pods, err := im.runtime.GetPods(true)
 	if err != nil {
-		return imagesInUse, err
+		return err
 	}
 
 	// Make a set of images in use by containers.
+	imagesInUse := sets.NewString()
 	for _, pod := range pods {
 		for _, container := range pod.Containers {
 			glog.V(5).Infof("Pod %s/%s, container %s uses image %s(%s)", pod.Namespace, pod.Name, container.Name, container.Image, container.ImageID)
@@ -231,7 +231,7 @@ func (im *realImageGCManager) detectImages(detectTime time.Time) (sets.String, e
 		}
 
 		// Set last used time to now if the image is being used.
-		if isImageUsed(image.ID, imagesInUse) {
+		if isImageUsed(image, imagesInUse) {
 			glog.V(5).Infof("Setting Image ID %s lastUsed to %v", image.ID, now)
 			im.imageRecords[image.ID].lastUsed = now
 		}
@@ -248,7 +248,7 @@ func (im *realImageGCManager) detectImages(detectTime time.Time) (sets.String, e
 		}
 	}
 
-	return imagesInUse, nil
+	return nil
 }
 
 func (im *realImageGCManager) GarbageCollect() error {
@@ -309,7 +309,7 @@ func (im *realImageGCManager) DeleteUnusedImages() (int64, error) {
 // Note that error may be nil and the number of bytes free may be less
 // than bytesToFree.
 func (im *realImageGCManager) freeSpace(bytesToFree int64, freeTime time.Time) (int64, error) {
-	imagesInUse, err := im.detectImages(freeTime)
+	err := im.detectImages(freeTime)
 	if err != nil {
 		return 0, err
 	}
@@ -320,10 +320,6 @@ func (im *realImageGCManager) freeSpace(bytesToFree int64, freeTime time.Time) (
 	// Get all images in eviction order.
 	images := make([]evictionInfo, 0, len(im.imageRecords))
 	for image, record := range im.imageRecords {
-		if isImageUsed(image, imagesInUse) {
-			glog.V(5).Infof("Image ID %s is being used", image)
-			continue
-		}
 		images = append(images, evictionInfo{
 			id:          image,
 			imageRecord: *record,
@@ -389,9 +385,9 @@ func (ev byLastUsedAndDetected) Less(i, j int) bool {
 	}
 }
 
-func isImageUsed(imageID string, imagesInUse sets.String) bool {
+func isImageUsed(image container.Image, imagesInUse sets.String) bool {
 	// Check the image ID.
-	if _, ok := imagesInUse[imageID]; ok {
+	if _, ok := imagesInUse[image.ID]; ok {
 		return true
 	}
 	return false

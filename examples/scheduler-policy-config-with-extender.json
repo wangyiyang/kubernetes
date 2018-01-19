@@ -26,6 +26,5 @@
         "nodeCacheCapable": false
 	}
     ],
-"hardPodAffinitySymmetricWeight" : 10,
-"alwaysCheckAllPredicates" : false
+"hardPodAffinitySymmetricWeight" : 10
 }

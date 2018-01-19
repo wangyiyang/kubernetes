@@ -38,7 +38,7 @@ import (
 
 const defaultContainerName = "test-c"
 
-func TestDefaultPodSecurityContextNonmutating(t *testing.T) {
+func TestCreatePodSecurityContextNonmutating(t *testing.T) {
 	// Create a pod with a security context that needs filling in
 	createPod := func() *api.Pod {
 		return &api.Pod{
@@ -82,7 +82,7 @@ func TestDefaultPodSecurityContextNonmutating(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unable to create provider %v", err)
 	}
-	err = provider.DefaultPodSecurityContext(pod)
+	_, _, err = provider.CreatePodSecurityContext(pod)
 	if err != nil {
 		t.Fatalf("unable to create psc %v", err)
 	}
@@ -91,14 +91,14 @@ func TestDefaultPodSecurityContextNonmutating(t *testing.T) {
 	// since all the strategies were permissive
 	if !reflect.DeepEqual(createPod(), pod) {
 		diffs := diff.ObjectDiff(createPod(), pod)
-		t.Errorf("pod was mutated by DefaultPodSecurityContext. diff:\n%s", diffs)
+		t.Errorf("pod was mutated by CreatePodSecurityContext. diff:\n%s", diffs)
 	}
 	if !reflect.DeepEqual(createPSP(), psp) {
-		t.Error("psp was mutated by DefaultPodSecurityContext")
+		t.Error("psp was mutated by CreatePodSecurityContext")
 	}
 }
 
-func TestDefaultContainerSecurityContextNonmutating(t *testing.T) {
+func TestCreateContainerSecurityContextNonmutating(t *testing.T) {
 	untrue := false
 	tests := []struct {
 		security *api.SecurityContext
@@ -154,7 +154,7 @@ func TestDefaultContainerSecurityContextNonmutating(t *testing.T) {
 		if err != nil {
 			t.Fatalf("unable to create provider %v", err)
 		}
-		err = provider.DefaultContainerSecurityContext(pod, &pod.Spec.Containers[0])
+		_, _, err = provider.CreateContainerSecurityContext(pod, &pod.Spec.Containers[0])
 		if err != nil {
 			t.Fatalf("unable to create container security context %v", err)
 		}
@@ -163,10 +163,10 @@ func TestDefaultContainerSecurityContextNonmutating(t *testing.T) {
 		// since all the strategies were permissive
 		if !reflect.DeepEqual(createPod(), pod) {
 			diffs := diff.ObjectDiff(createPod(), pod)
-			t.Errorf("pod was mutated by DefaultContainerSecurityContext. diff:\n%s", diffs)
+			t.Errorf("pod was mutated by CreateContainerSecurityContext. diff:\n%s", diffs)
 		}
 		if !reflect.DeepEqual(createPSP(), psp) {
-			t.Error("psp was mutated by DefaultContainerSecurityContext")
+			t.Error("psp was mutated by CreateContainerSecurityContext")
 		}
 	}
 }
@@ -965,13 +965,12 @@ func TestGenerateContainerSecurityContextReadOnlyRootFS(t *testing.T) {
 			t.Errorf("%s unable to create provider %v", k, err)
 			continue
 		}
-		err = provider.DefaultContainerSecurityContext(v.pod, &v.pod.Spec.Containers[0])
+		sc, _, err := provider.CreateContainerSecurityContext(v.pod, &v.pod.Spec.Containers[0])
 		if err != nil {
 			t.Errorf("%s unable to create container security context %v", k, err)
 			continue
 		}
 
-		sc := v.pod.Spec.Containers[0].SecurityContext
 		if v.expected == nil && sc.ReadOnlyRootFilesystem != nil {
 			t.Errorf("%s expected a nil ReadOnlyRootFilesystem but got %t", k, *sc.ReadOnlyRootFilesystem)
 		}

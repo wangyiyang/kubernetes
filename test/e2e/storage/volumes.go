@@ -55,9 +55,6 @@ import (
 	clientset "k8s.io/client-go/kubernetes"
 	kubeletapis "k8s.io/kubernetes/pkg/kubelet/apis"
 	"k8s.io/kubernetes/test/e2e/framework"
-	"k8s.io/kubernetes/test/e2e/storage/utils"
-	vspheretest "k8s.io/kubernetes/test/e2e/storage/vsphere"
-	imageutils "k8s.io/kubernetes/test/utils/image"
 )
 
 func DeleteCinderVolume(name string) error {
@@ -82,7 +79,7 @@ func DeleteCinderVolume(name string) error {
 }
 
 // These tests need privileged containers, which are disabled by default.
-var _ = utils.SIGDescribe("Volumes", func() {
+var _ = SIGDescribe("Volumes", func() {
 	f := framework.NewDefaultFramework("volume")
 
 	// note that namespace deletion is handled by delete-namespace flag
@@ -261,14 +258,14 @@ var _ = utils.SIGDescribe("Volumes", func() {
 			config := framework.VolumeTestConfig{
 				Namespace:   namespace.Name,
 				Prefix:      "cephfs",
-				ServerImage: imageutils.GetE2EImage(imageutils.VolumeCephServer),
+				ServerImage: framework.CephServerImage,
 				ServerPorts: []int{6789},
 			}
 
 			defer framework.VolumeTestCleanup(f, config)
 			_, serverIP := framework.CreateStorageServer(cs, config)
 			By("sleeping a bit to give ceph server time to initialize")
-			time.Sleep(framework.VolumeServerPodStartupSleep)
+			time.Sleep(20 * time.Second)
 
 			// create ceph secret
 			secret := &v1.Secret{
@@ -513,10 +510,10 @@ var _ = utils.SIGDescribe("Volumes", func() {
 			if err != nil {
 				return
 			}
-			vsp, err := vspheretest.GetVSphere(c)
+			vsp, err := getVSphere(c)
 			Expect(err).NotTo(HaveOccurred())
 
-			volumePath, err = vspheretest.CreateVSphereVolume(vsp, nil)
+			volumePath, err = createVSphereVolume(vsp, nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			defer func() {

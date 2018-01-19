@@ -9,25 +9,13 @@ go_library(
         "find.go",
         "raw_exec.go",
     ] + select({
-        "@io_bazel_rules_go//go/platform:darwin": [
+        "@io_bazel_rules_go//go/platform:darwin_amd64": [
             "os_unix.go",
         ],
-        "@io_bazel_rules_go//go/platform:dragonfly": [
+        "@io_bazel_rules_go//go/platform:linux_amd64": [
             "os_unix.go",
         ],
-        "@io_bazel_rules_go//go/platform:freebsd": [
-            "os_unix.go",
-        ],
-        "@io_bazel_rules_go//go/platform:linux": [
-            "os_unix.go",
-        ],
-        "@io_bazel_rules_go//go/platform:netbsd": [
-            "os_unix.go",
-        ],
-        "@io_bazel_rules_go//go/platform:solaris": [
-            "os_unix.go",
-        ],
-        "@io_bazel_rules_go//go/platform:windows": [
+        "@io_bazel_rules_go//go/platform:windows_amd64": [
             "os_windows.go",
         ],
         "//conditions:default": [],

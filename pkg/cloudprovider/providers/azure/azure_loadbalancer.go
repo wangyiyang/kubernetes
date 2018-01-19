@@ -23,53 +23,49 @@ import (
 	"strings"
 
 	"k8s.io/api/core/v1"
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	serviceapi "k8s.io/kubernetes/pkg/api/v1/service"
 
+	"github.com/Azure/azure-sdk-for-go/arm/compute"
 	"github.com/Azure/azure-sdk-for-go/arm/network"
 	"github.com/Azure/go-autorest/autorest/to"
 	"github.com/golang/glog"
+	"k8s.io/apimachinery/pkg/types"
 )
 
-const (
-	// ServiceAnnotationLoadBalancerInternal is the annotation used on the service
-	ServiceAnnotationLoadBalancerInternal = "service.beta.kubernetes.io/azure-load-balancer-internal"
+// ServiceAnnotationLoadBalancerInternal is the annotation used on the service
+const ServiceAnnotationLoadBalancerInternal = "service.beta.kubernetes.io/azure-load-balancer-internal"
 
-	// ServiceAnnotationLoadBalancerInternalSubnet is the annotation used on the service
-	// to specify what subnet it is exposed on
-	ServiceAnnotationLoadBalancerInternalSubnet = "service.beta.kubernetes.io/azure-load-balancer-internal-subnet"
+// ServiceAnnotationLoadBalancerInternalSubnet is the annotation used on the service
+// to specify what subnet it is exposed on
+const ServiceAnnotationLoadBalancerInternalSubnet = "service.beta.kubernetes.io/azure-load-balancer-internal-subnet"
 
-	// ServiceAnnotationLoadBalancerMode is the annotation used on the service to specify the
-	// Azure load balancer selection based on availability sets
-	// There are currently three possible load balancer selection modes :
-	// 1. Default mode - service has no annotation ("service.beta.kubernetes.io/azure-load-balancer-mode")
-	//	  In this case the Loadbalancer of the primary Availability set is selected
-	// 2. "__auto__" mode - service is annotated with __auto__ value, this when loadbalancer from any availability set
-	//    is selected which has the minimum rules associated with it.
-	// 3. "as1,as2" mode - this is when the load balancer from the specified availability sets is selected that has the
-	//    minimum rules associated with it.
-	ServiceAnnotationLoadBalancerMode = "service.beta.kubernetes.io/azure-load-balancer-mode"
+// ServiceAnnotationLoadBalancerMode is the annotation used on the service to specify the
+// Azure load balancer selection based on availability sets
+// There are currently three possible load balancer selection modes :
+// 1. Default mode - service has no annotation ("service.beta.kubernetes.io/azure-load-balancer-mode")
+//	  In this case the Loadbalancer of the primary Availability set is selected
+// 2. "__auto__" mode - service is annotated with __auto__ value, this when loadbalancer from any availability set
+//    is selected which has the miinimum rules associated with it.
+// 3. "as1,as2" mode - this is when the laod balancer from the specified availability sets is selected that has the
+//    miinimum rules associated with it.
+const ServiceAnnotationLoadBalancerMode = "service.beta.kubernetes.io/azure-load-balancer-mode"
 
-	// ServiceAnnotationLoadBalancerAutoModeValue is the annotation used on the service to specify the
-	// Azure load balancer auto selection from the availability sets
-	ServiceAnnotationLoadBalancerAutoModeValue = "__auto__"
+// ServiceAnnotationLoadBalancerAutoModeValue the annotation used on the service to specify the
+// Azure load balancer auto selection from the availability sets
+const ServiceAnnotationLoadBalancerAutoModeValue = "__auto__"
 
-	// ServiceAnnotationDNSLabelName is the annotation used on the service
-	// to specify the DNS label name for the service.
-	ServiceAnnotationDNSLabelName = "service.beta.kubernetes.io/azure-dns-label-name"
+// ServiceAnnotationDNSLabelName annotation speficying the DNS label name for the service.
+const ServiceAnnotationDNSLabelName = "service.beta.kubernetes.io/azure-dns-label-name"
 
-	// ServiceAnnotationSharedSecurityRule is the annotation used on the service
-	// to specify that the service should be exposed using an Azure security rule
-	// that may be shared with other service, trading specificity of rules for an
-	// increase in the number of services that can be exposed. This relies on the
-	// Azure "augmented security rules" feature which at the time of writing is in
-	// preview and available only in certain regions.
-	ServiceAnnotationSharedSecurityRule = "service.beta.kubernetes.io/azure-shared-securityrule"
-)
-
-// ServiceAnnotationLoadBalancerResourceGroup is the annotation used on the service
-// to specify the resource group of load balancer objects that are not in the same resource group as the cluster.
-const ServiceAnnotationLoadBalancerResourceGroup = "service.beta.kubernetes.io/azure-load-balancer-resource-group"
+// ServiceAnnotationSharedSecurityRule is the annotation used on the service
+// to specify that the service should be exposed using an Azure security rule
+// that may be shared with other service, trading specificity of rules for an
+// increase in the number of services that can be exposed. This relies on the
+// Azure "augmented security rules" feature which at the time of writing is in
+// preview and available only in certain regions.
+const ServiceAnnotationSharedSecurityRule = "service.beta.kubernetes.io/azure-shared-securityrule"
 
 // GetLoadBalancer returns whether the specified load balancer exists, and
 // if so, what its status is.
@@ -78,15 +74,15 @@ func (az *Cloud) GetLoadBalancer(clusterName string, service *v1.Service) (statu
 	if err != nil {
 		return nil, false, err
 	}
-	if !exists {
+	if exists == false {
 		serviceName := getServiceName(service)
-		glog.V(5).Infof("getloadbalancer (cluster:%s) (service:%s) - doesn't exist", clusterName, serviceName)
-		return nil, false, nil
+		glog.V(5).Infof("getloadbalancer (cluster:%s) (service:%s)- IP doesn't exist in any of the lbs", clusterName, serviceName)
+		return nil, false, fmt.Errorf("Service(%s) - Loadbalancer not found", serviceName)
 	}
 	return status, true, nil
 }
 
-func getPublicIPDomainNameLabel(service *v1.Service) string {
+func getPublicIPLabel(service *v1.Service) string {
 	if labelName, found := service.Annotations[ServiceAnnotationDNSLabelName]; found {
 		return labelName
 	}
@@ -170,16 +166,15 @@ func (az *Cloud) EnsureLoadBalancerDeleted(clusterName string, service *v1.Servi
 	return nil
 }
 
-// getServiceLoadBalancer gets the loadbalancer for the service if it already exists.
-// If wantLb is TRUE then -it selects a new load balancer.
+// getServiceLoadBalancer gets the loadbalancer for the service if it already exists
+// If wantLb is TRUE then -it selects a new load balancer
 // In case the selected load balancer does not exists it returns network.LoadBalancer struct
-// with added metadata (such as name, location) and existsLB set to FALSE.
-// By default - cluster default LB is returned.
+// with added metadata (such as name, location) and existsLB set to FALSE
+// By default - cluster default LB is returned
 func (az *Cloud) getServiceLoadBalancer(service *v1.Service, clusterName string, nodes []*v1.Node, wantLb bool) (lb *network.LoadBalancer, status *v1.LoadBalancerStatus, exists bool, err error) {
 	isInternal := requiresInternalLoadBalancer(service)
 	var defaultLB *network.LoadBalancer
-	primaryVMSetName := az.vmSet.GetPrimaryVMSetName()
-	defaultLBName := az.getLoadBalancerName(clusterName, primaryVMSetName, isInternal)
+	defaultLBName := az.getLoadBalancerName(clusterName, az.Config.PrimaryAvailabilitySetName, isInternal)
 
 	existingLBs, err := az.ListLBWithRetry()
 	if err != nil {
@@ -239,19 +234,18 @@ func (az *Cloud) selectLoadBalancer(clusterName string, service *v1.Service, exi
 	isInternal := requiresInternalLoadBalancer(service)
 	serviceName := getServiceName(service)
 	glog.V(3).Infof("selectLoadBalancer(%s): isInternal(%s) - start", serviceName, isInternal)
-	vmSetNames, err := az.vmSet.GetVMSetNames(service, nodes)
+	availabilitySetNames, err := az.getLoadBalancerAvailabilitySetNames(service, nodes)
 	if err != nil {
-		glog.Errorf("az.selectLoadBalancer: cluster(%s) service(%s) isInternal(%t) - az.GetVMSetNames failed, err=(%v)", clusterName, serviceName, isInternal, err)
+		glog.Errorf("az.selectLoadBalancer: cluster(%s) service(%s) isInternal(%t) - az.getLoadBalancerAvailabilitySetNames failed, err=(%v)", clusterName, serviceName, isInternal, err)
 		return nil, false, err
 	}
-	glog.Infof("selectLoadBalancer: cluster(%s) service(%s) isInternal(%t) - vmSetNames %v", clusterName, serviceName, isInternal, *vmSetNames)
-
+	glog.Infof("selectLoadBalancer: cluster(%s) service(%s) isInternal(%t) - availabilitysetsnames %v", clusterName, serviceName, isInternal, *availabilitySetNames)
 	mapExistingLBs := map[string]network.LoadBalancer{}
 	for _, lb := range *existingLBs {
 		mapExistingLBs[*lb.Name] = lb
 	}
 	selectedLBRuleCount := math.MaxInt32
-	for _, currASName := range *vmSetNames {
+	for _, currASName := range *availabilitySetNames {
 		currLBName := az.getLoadBalancerName(clusterName, currASName, isInternal)
 		lb, exists := mapExistingLBs[currLBName]
 		if !exists {
@@ -278,13 +272,13 @@ func (az *Cloud) selectLoadBalancer(clusterName string, service *v1.Service, exi
 	}
 
 	if selectedLB == nil {
-		err = fmt.Errorf("selectLoadBalancer: cluster(%s) service(%s) isInternal(%t) - unable to find load balancer for selected VM sets %v", clusterName, serviceName, isInternal, *vmSetNames)
+		err = fmt.Errorf("selectLoadBalancer: cluster(%s) service(%s) isInternal(%t) - unable to find load balancer for selected availability sets %v", clusterName, serviceName, isInternal, *availabilitySetNames)
 		glog.Error(err)
 		return nil, false, err
 	}
 	// validate if the selected LB has not exceeded the MaximumLoadBalancerRuleCount
 	if az.Config.MaximumLoadBalancerRuleCount != 0 && selectedLBRuleCount >= az.Config.MaximumLoadBalancerRuleCount {
-		err = fmt.Errorf("selectLoadBalancer: cluster(%s) service(%s) isInternal(%t) -  all available load balancers have exceeded maximum rule limit %d, vmSetNames (%v)", clusterName, serviceName, isInternal, selectedLBRuleCount, *vmSetNames)
+		err = fmt.Errorf("selectLoadBalancer: cluster(%s) service(%s) isInternal(%t) -  all available load balancers have exceeded maximum rule limit %d, availabilitysetnames (%v)", clusterName, serviceName, isInternal, selectedLBRuleCount, *availabilitySetNames)
 		glog.Error(err)
 		return selectedLB, existsLb, err
 	}
@@ -320,7 +314,7 @@ func (az *Cloud) getServiceLoadBalancerStatus(service *v1.Service, lb *network.L
 				if err != nil {
 					return nil, fmt.Errorf("get(%s): lb(%s) - failed to get LB PublicIPAddress Name from ID(%s)", serviceName, *lb.Name, *pipID)
 				}
-				pip, existsPip, err := az.getPublicIPAddress(az.getPublicIPAddressResourceGroup(service), pipName)
+				pip, existsPip, err := az.getPublicIPAddress(pipName)
 				if err != nil {
 					return nil, err
 				}
@@ -342,9 +336,7 @@ func (az *Cloud) determinePublicIPName(clusterName string, service *v1.Service) 
 		return getPublicIPName(clusterName, service), nil
 	}
 
-	pipResourceGroup := az.getPublicIPAddressResourceGroup(service)
-
-	pips, err := az.ListPIPWithRetry(pipResourceGroup)
+	pips, err := az.ListPIPWithRetry()
 	if err != nil {
 		return "", err
 	}
@@ -355,7 +347,7 @@ func (az *Cloud) determinePublicIPName(clusterName string, service *v1.Service) 
 			return *pip.Name, nil
 		}
 	}
-	return "", fmt.Errorf("user supplied IP Address %s was not found in resource group %s", loadBalancerIP, pipResourceGroup)
+	return "", fmt.Errorf("user supplied IP Address %s was not found", loadBalancerIP)
 }
 
 func flipServiceInternalAnnotation(service *v1.Service) *v1.Service {
@@ -392,9 +384,8 @@ func (az *Cloud) findServiceIPAddress(clusterName string, service *v1.Service, i
 	return lbStatus.Ingress[0].IP, nil
 }
 
-func (az *Cloud) ensurePublicIPExists(service *v1.Service, pipName string, domainNameLabel string) (*network.PublicIPAddress, error) {
-	pipResourceGroup := az.getPublicIPAddressResourceGroup(service)
-	pip, existsPip, err := az.getPublicIPAddress(pipResourceGroup, pipName)
+func (az *Cloud) ensurePublicIPExists(serviceName, pipName, domainNameLabel string) (*network.PublicIPAddress, error) {
+	pip, existsPip, err := az.getPublicIPAddress(pipName)
 	if err != nil {
 		return nil, err
 	}
@@ -402,7 +393,6 @@ func (az *Cloud) ensurePublicIPExists(service *v1.Service, pipName string, domai
 		return &pip, nil
 	}
 
-	serviceName := getServiceName(service)
 	pip.Name = to.StringPtr(pipName)
 	pip.Location = to.StringPtr(az.Location)
 	pip.PublicIPAddressPropertiesFormat = &network.PublicIPAddressPropertiesFormat{
@@ -415,15 +405,19 @@ func (az *Cloud) ensurePublicIPExists(service *v1.Service, pipName string, domai
 	}
 	pip.Tags = &map[string]*string{"service": &serviceName}
 	glog.V(3).Infof("ensure(%s): pip(%s) - creating", serviceName, *pip.Name)
-	glog.V(10).Infof("CreateOrUpdatePIPWithRetry(%s, %q): start", pipResourceGroup, *pip.Name)
-	err = az.CreateOrUpdatePIPWithRetry(pipResourceGroup, pip)
+	az.operationPollRateLimiter.Accept()
+	glog.V(10).Infof("CreateOrUpdatePIPWithRetry(%q): start", *pip.Name)
+	err = az.CreateOrUpdatePIPWithRetry(pip)
 	if err != nil {
 		glog.V(2).Infof("ensure(%s) abort backoff: pip(%s) - creating", serviceName, *pip.Name)
 		return nil, err
 	}
-	glog.V(10).Infof("CreateOrUpdatePIPWithRetry(%s, %q): end", pipResourceGroup, *pip.Name)
+	glog.V(10).Infof("CreateOrUpdatePIPWithRetry(%q): end", *pip.Name)
 
-	pip, err = az.PublicIPAddressesClient.Get(pipResourceGroup, *pip.Name, "")
+	az.operationPollRateLimiter.Accept()
+	glog.V(10).Infof("PublicIPAddressesClient.Get(%q): start", *pip.Name)
+	pip, err = az.PublicIPAddressesClient.Get(az.ResourceGroup, *pip.Name, "")
+	glog.V(10).Infof("PublicIPAddressesClient.Get(%q): end", *pip.Name)
 	if err != nil {
 		return nil, err
 	}
@@ -550,8 +544,8 @@ func (az *Cloud) reconcileLoadBalancer(clusterName string, service *v1.Service, 
 				if err != nil {
 					return nil, err
 				}
-				domainNameLabel := getPublicIPDomainNameLabel(service)
-				pip, err := az.ensurePublicIPExists(service, pipName, domainNameLabel)
+				domainNameLabel := getPublicIPLabel(service)
+				pip, err := az.ensurePublicIPExists(serviceName, pipName, domainNameLabel)
 				if err != nil {
 					return nil, err
 				}
@@ -747,24 +741,14 @@ func (az *Cloud) reconcileLoadBalancer(clusterName string, service *v1.Service, 
 			// because an Azure load balancer cannot have an empty FrontendIPConfigurations collection
 			glog.V(3).Infof("delete(%s): lb(%s) - deleting; no remaining frontendipconfigs", serviceName, lbName)
 
-			// Remove backend pools from vmSets. This is required for virtual machine scale sets before removing the LB.
-			vmSetName := az.mapLoadBalancerNameToVMSet(lbName, clusterName)
-			glog.V(10).Infof("EnsureBackendPoolDeleted(%s, %s): start", lbBackendPoolID, vmSetName)
-			err := az.vmSet.EnsureBackendPoolDeleted(lbBackendPoolID, vmSetName)
-			if err != nil {
-				glog.Errorf("EnsureBackendPoolDeleted(%s, %s) failed: %v", lbBackendPoolID, vmSetName, err)
-				return nil, err
-			}
-			glog.V(10).Infof("EnsureBackendPoolDeleted(%s, %s): end", lbBackendPoolID, vmSetName)
-
-			// Remove the LB.
-			glog.V(10).Infof("az.DeleteLBWithRetry(%q): start", lbName)
-			err = az.DeleteLBWithRetry(lbName)
+			az.operationPollRateLimiter.Accept()
+			glog.V(10).Infof("LoadBalancerClient.Delete(%q): start", lbName)
+			err := az.DeleteLBWithRetry(lbName)
 			if err != nil {
 				glog.V(2).Infof("delete(%s) abort backoff: lb(%s) - deleting; no remaining frontendipconfigs", serviceName, lbName)
 				return nil, err
 			}
-			glog.V(10).Infof("az.DeleteLBWithRetry(%q): end", lbName)
+			glog.V(10).Infof("LoadBalancerClient.Delete(%q): end", lbName)
 		} else {
 			glog.V(3).Infof("ensure(%s): lb(%s) - updating", serviceName, lbName)
 			err := az.CreateOrUpdateLBWithRetry(*lb)
@@ -777,10 +761,23 @@ func (az *Cloud) reconcileLoadBalancer(clusterName string, service *v1.Service, 
 
 	if wantLb && nodes != nil {
 		// Add the machines to the backend pool if they're not already
-		vmSetName := az.mapLoadBalancerNameToVMSet(lbName, clusterName)
-		err := az.vmSet.EnsureHostsInPool(serviceName, nodes, lbBackendPoolID, vmSetName)
-		if err != nil {
-			return nil, err
+		availabilitySetName := az.mapLoadBalancerNameToAvailabilitySet(lbName, clusterName)
+		hostUpdates := make([]func() error, len(nodes))
+		for i, node := range nodes {
+			localNodeName := node.Name
+			f := func() error {
+				err := az.ensureHostInPool(serviceName, types.NodeName(localNodeName), lbBackendPoolID, availabilitySetName)
+				if err != nil {
+					return fmt.Errorf("ensure(%s): lb(%s) - failed to ensure host in pool: %q", serviceName, lbName, err)
+				}
+				return nil
+			}
+			hostUpdates[i] = f
+		}
+
+		errs := utilerrors.AggregateGoroutines(hostUpdates...)
+		if errs != nil {
+			return nil, utilerrors.Flatten(errs)
 		}
 	}
 
@@ -803,7 +800,10 @@ func (az *Cloud) reconcileSecurityGroup(clusterName string, service *v1.Service,
 		ports = []v1.ServicePort{}
 	}
 
+	az.operationPollRateLimiter.Accept()
+	glog.V(10).Infof("SecurityGroupsClient.Get(%q): start", az.SecurityGroupName)
 	sg, err := az.SecurityGroupsClient.Get(az.ResourceGroup, az.SecurityGroupName, "")
+	glog.V(10).Infof("SecurityGroupsClient.Get(%q): end", az.SecurityGroupName)
 	if err != nil {
 		return nil, err
 	}
@@ -972,6 +972,7 @@ func (az *Cloud) reconcileSecurityGroup(clusterName string, service *v1.Service,
 	if dirtySg {
 		sg.SecurityRules = &updatedRules
 		glog.V(3).Infof("ensure(%s): sg(%s) - updating", serviceName, *sg.Name)
+		az.operationPollRateLimiter.Accept()
 		glog.V(10).Infof("CreateOrUpdateSGWithRetry(%q): start", *sg.Name)
 		err := az.CreateOrUpdateSGWithRetry(sg)
 		if err != nil {
@@ -1142,9 +1143,7 @@ func (az *Cloud) reconcilePublicIP(clusterName string, service *v1.Service, want
 		}
 	}
 
-	pipResourceGroup := az.getPublicIPAddressResourceGroup(service)
-
-	pips, err := az.ListPIPWithRetry(pipResourceGroup)
+	pips, err := az.ListPIPWithRetry()
 	if err != nil {
 		return nil, err
 	}
@@ -1160,14 +1159,15 @@ func (az *Cloud) reconcilePublicIP(clusterName string, service *v1.Service, want
 				// Public ip resource with match service tag
 			} else {
 				glog.V(2).Infof("ensure(%s): pip(%s) - deleting", serviceName, pipName)
-				glog.V(10).Infof("DeletePublicIPWithRetry(%s, %q): start", pipResourceGroup, pipName)
-				err = az.DeletePublicIPWithRetry(pipResourceGroup, pipName)
+				az.operationPollRateLimiter.Accept()
+				glog.V(10).Infof("DeletePublicIPWithRetry(%q): start", pipName)
+				err = az.DeletePublicIPWithRetry(pipName)
 				if err != nil {
 					glog.V(2).Infof("ensure(%s) abort backoff: pip(%s) - deleting", serviceName, pipName)
 					// We let err to pass through
 					// It may be ignorable
 				}
-				glog.V(10).Infof("DeletePublicIPWithRetry(%s, %q): end", pipResourceGroup, pipName) // response not read yet...
+				glog.V(10).Infof("DeletePublicIPWithRetry(%q): end", pipName) // response not read yet...
 
 				err = ignoreStatusNotFoundFromError(err)
 				if err != nil {
@@ -1182,8 +1182,8 @@ func (az *Cloud) reconcilePublicIP(clusterName string, service *v1.Service, want
 	if !isInternal && wantLb {
 		// Confirm desired public ip resource exists
 		var pip *network.PublicIPAddress
-		domainNameLabel := getPublicIPDomainNameLabel(service)
-		if pip, err = az.ensurePublicIPExists(service, desiredPipName, domainNameLabel); err != nil {
+		domainNameLabel := getPublicIPLabel(service)
+		if pip, err = az.ensurePublicIPExists(serviceName, desiredPipName, domainNameLabel); err != nil {
 			return nil, err
 		}
 		return pip, nil
@@ -1246,17 +1246,95 @@ func findSecurityRule(rules []network.SecurityRule, rule network.SecurityRule) b
 	return false
 }
 
-func (az *Cloud) getPublicIPAddressResourceGroup(service *v1.Service) string {
-	if resourceGroup, found := service.Annotations[ServiceAnnotationLoadBalancerResourceGroup]; found {
-		return resourceGroup
+// This ensures the given VM's Primary NIC's Primary IP Configuration is
+// participating in the specified LoadBalancer Backend Pool.
+func (az *Cloud) ensureHostInPool(serviceName string, nodeName types.NodeName, backendPoolID string, availabilitySetName string) error {
+	var machine compute.VirtualMachine
+	az.operationPollRateLimiter.Accept()
+	machine, err := az.GetVirtualMachineWithRetry(nodeName)
+	if err != nil {
+		glog.V(2).Infof("ensureHostInPool(%s, %s, %s) abort backoff", serviceName, nodeName, backendPoolID)
+		return err
 	}
 
-	return az.ResourceGroup
+	primaryNicID, err := getPrimaryInterfaceID(machine)
+	if err != nil {
+		return err
+	}
+	nicName, err := getLastSegment(primaryNicID)
+	if err != nil {
+		return err
+	}
+
+	// Check availability set
+	if availabilitySetName != "" {
+		expectedAvailabilitySetName := az.getAvailabilitySetID(availabilitySetName)
+		if machine.AvailabilitySet == nil || !strings.EqualFold(*machine.AvailabilitySet.ID, expectedAvailabilitySetName) {
+			glog.V(3).Infof(
+				"nicupdate(%s): skipping nic (%s) since it is not in the availabilitySet(%s)",
+				serviceName, nicName, availabilitySetName)
+			return nil
+		}
+	}
+
+	az.operationPollRateLimiter.Accept()
+	glog.V(10).Infof("InterfacesClient.Get(%q): start", nicName)
+	nic, err := az.InterfacesClient.Get(az.ResourceGroup, nicName, "")
+	glog.V(10).Infof("InterfacesClient.Get(%q): end", nicName)
+	if err != nil {
+		return err
+	}
+
+	var primaryIPConfig *network.InterfaceIPConfiguration
+	primaryIPConfig, err = getPrimaryIPConfig(nic)
+	if err != nil {
+		return err
+	}
+
+	foundPool := false
+	newBackendPools := []network.BackendAddressPool{}
+	if primaryIPConfig.LoadBalancerBackendAddressPools != nil {
+		newBackendPools = *primaryIPConfig.LoadBalancerBackendAddressPools
+	}
+	for _, existingPool := range newBackendPools {
+		if strings.EqualFold(backendPoolID, *existingPool.ID) {
+			foundPool = true
+			break
+		}
+	}
+	if !foundPool {
+		newBackendPools = append(newBackendPools,
+			network.BackendAddressPool{
+				ID: to.StringPtr(backendPoolID),
+			})
+
+		primaryIPConfig.LoadBalancerBackendAddressPools = &newBackendPools
+
+		glog.V(3).Infof("nicupdate(%s): nic(%s) - updating", serviceName, nicName)
+		az.operationPollRateLimiter.Accept()
+		glog.V(10).Infof("InterfacesClient.CreateOrUpdate(%q): start", *nic.Name)
+		respChan, errChan := az.InterfacesClient.CreateOrUpdate(az.ResourceGroup, *nic.Name, nic, nil)
+		resp := <-respChan
+		err := <-errChan
+		glog.V(10).Infof("InterfacesClient.CreateOrUpdate(%q): end", *nic.Name)
+		if az.CloudProviderBackoff && shouldRetryAPIRequest(resp.Response, err) {
+			glog.V(2).Infof("nicupdate(%s) backing off: nic(%s) - updating, err=%v", serviceName, nicName, err)
+			retryErr := az.CreateOrUpdateInterfaceWithRetry(nic)
+			if retryErr != nil {
+				err = retryErr
+				glog.V(2).Infof("nicupdate(%s) abort backoff: nic(%s) - updating", serviceName, nicName)
+			}
+		}
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // Check if service requires an internal load balancer.
 func requiresInternalLoadBalancer(service *v1.Service) bool {
-	if l, found := service.Annotations[ServiceAnnotationLoadBalancerInternal]; found {
+	if l, ok := service.Annotations[ServiceAnnotationLoadBalancerInternal]; ok {
 		return l == "true"
 	}
 
@@ -1265,7 +1343,7 @@ func requiresInternalLoadBalancer(service *v1.Service) bool {
 
 func subnet(service *v1.Service) *string {
 	if requiresInternalLoadBalancer(service) {
-		if l, found := service.Annotations[ServiceAnnotationLoadBalancerInternalSubnet]; found {
+		if l, ok := service.Annotations[ServiceAnnotationLoadBalancerInternalSubnet]; ok {
 			return &l
 		}
 	}
@@ -1273,28 +1351,28 @@ func subnet(service *v1.Service) *string {
 	return nil
 }
 
-// getServiceLoadBalancerMode parses the mode value.
-// if the value is __auto__ it returns isAuto = TRUE.
-// if anything else it returns the unique VM set names after triming spaces.
-func getServiceLoadBalancerMode(service *v1.Service) (hasMode bool, isAuto bool, vmSetNames []string) {
+// getServiceLoadBalancerMode parses the mode value
+// if the value is __auto__ it returns isAuto = TRUE
+// if anything else it returns the unique availability set names after triming spaces
+func getServiceLoadBalancerMode(service *v1.Service) (hasMode bool, isAuto bool, availabilitySetNames []string) {
 	mode, hasMode := service.Annotations[ServiceAnnotationLoadBalancerMode]
 	mode = strings.TrimSpace(mode)
 	isAuto = strings.EqualFold(mode, ServiceAnnotationLoadBalancerAutoModeValue)
 	if !isAuto {
 		// Break up list of "AS1,AS2"
-		vmSetParsedList := strings.Split(mode, ",")
+		availabilitySetParsedList := strings.Split(mode, ",")
 
-		// Trim the VM set names and remove duplicates
+		// Trim the availability set names and remove duplicates
 		//  e.g. {"AS1"," AS2", "AS3", "AS3"} => {"AS1", "AS2", "AS3"}
-		vmSetNameSet := sets.NewString()
-		for _, v := range vmSetParsedList {
-			vmSetNameSet.Insert(strings.TrimSpace(v))
+		availabilitySetNameSet := sets.NewString()
+		for _, v := range availabilitySetParsedList {
+			availabilitySetNameSet.Insert(strings.TrimSpace(v))
 		}
 
-		vmSetNames = vmSetNameSet.List()
+		availabilitySetNames = availabilitySetNameSet.List()
 	}
 
-	return hasMode, isAuto, vmSetNames
+	return hasMode, isAuto, availabilitySetNames
 }
 
 func useSharedSecurityRule(service *v1.Service) bool {

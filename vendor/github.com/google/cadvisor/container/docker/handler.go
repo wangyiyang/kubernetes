@@ -391,7 +391,6 @@ func (self *dockerContainerHandler) GetSpec() (info.ContainerSpec, error) {
 	}
 	spec.Envs = self.envs
 	spec.Image = self.image
-	spec.CreationTime = self.creationTime
 
 	return spec, err
 }

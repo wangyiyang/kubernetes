@@ -138,6 +138,7 @@ var (
 	// KubeletConfiguration fields that do not contain file paths.
 	kubeletConfigurationNonPathFieldPaths = sets.NewString(
 		"Address",
+		"AllowPrivileged",
 		"Authentication.Anonymous.Enabled",
 		"Authentication.Webhook.CacheTTL.Duration",
 		"Authentication.Webhook.Enabled",
@@ -175,7 +176,9 @@ var (
 		"HairpinMode",
 		"HealthzBindAddress",
 		"HealthzPort",
-		"TLSCipherSuites[*]",
+		"HostIPCSources[*]",
+		"HostNetworkSources[*]",
+		"HostPIDSources[*]",
 		"IPTablesDropBit",
 		"IPTablesMasqueradeBit",
 		"ImageGCHighThresholdPercent",

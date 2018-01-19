@@ -2,12 +2,13 @@ package netlink
 
 import (
 	"fmt"
+	"log"
 	"net"
 	"strings"
+	"syscall"
 
 	"github.com/vishvananda/netlink/nl"
 	"github.com/vishvananda/netns"
-	"golang.org/x/sys/unix"
 )
 
 // IFA_FLAGS is a u32 attribute.
@@ -22,7 +23,7 @@ func AddrAdd(link Link, addr *Addr) error {
 // AddrAdd will add an IP address to a link device.
 // Equivalent to: `ip addr add $addr dev $link`
 func (h *Handle) AddrAdd(link Link, addr *Addr) error {
-	req := h.newNetlinkRequest(unix.RTM_NEWADDR, unix.NLM_F_CREATE|unix.NLM_F_EXCL|unix.NLM_F_ACK)
+	req := h.newNetlinkRequest(syscall.RTM_NEWADDR, syscall.NLM_F_CREATE|syscall.NLM_F_EXCL|syscall.NLM_F_ACK)
 	return h.addrHandle(link, addr, req)
 }
 
@@ -35,7 +36,7 @@ func AddrReplace(link Link, addr *Addr) error {
 // AddrReplace will replace (or, if not present, add) an IP address on a link device.
 // Equivalent to: `ip addr replace $addr dev $link`
 func (h *Handle) AddrReplace(link Link, addr *Addr) error {
-	req := h.newNetlinkRequest(unix.RTM_NEWADDR, unix.NLM_F_CREATE|unix.NLM_F_REPLACE|unix.NLM_F_ACK)
+	req := h.newNetlinkRequest(syscall.RTM_NEWADDR, syscall.NLM_F_CREATE|syscall.NLM_F_REPLACE|syscall.NLM_F_ACK)
 	return h.addrHandle(link, addr, req)
 }
 
@@ -48,7 +49,7 @@ func AddrDel(link Link, addr *Addr) error {
 // AddrDel will delete an IP address from a link device.
 // Equivalent to: `ip addr del $addr dev $link`
 func (h *Handle) AddrDel(link Link, addr *Addr) error {
-	req := h.newNetlinkRequest(unix.RTM_DELADDR, unix.NLM_F_ACK)
+	req := h.newNetlinkRequest(syscall.RTM_DELADDR, syscall.NLM_F_ACK)
 	return h.addrHandle(link, addr, req)
 }
 
@@ -75,7 +76,7 @@ func (h *Handle) addrHandle(link Link, addr *Addr, req *nl.NetlinkRequest) error
 		localAddrData = addr.IP.To16()
 	}
 
-	localData := nl.NewRtAttr(unix.IFA_LOCAL, localAddrData)
+	localData := nl.NewRtAttr(syscall.IFA_LOCAL, localAddrData)
 	req.AddData(localData)
 	var peerAddrData []byte
 	if addr.Peer != nil {
@@ -88,7 +89,7 @@ func (h *Handle) addrHandle(link Link, addr *Addr, req *nl.NetlinkRequest) error
 		peerAddrData = localAddrData
 	}
 
-	addressData := nl.NewRtAttr(unix.IFA_ADDRESS, peerAddrData)
+	addressData := nl.NewRtAttr(syscall.IFA_ADDRESS, peerAddrData)
 	req.AddData(addressData)
 
 	if addr.Flags != 0 {
@@ -109,14 +110,14 @@ func (h *Handle) addrHandle(link Link, addr *Addr, req *nl.NetlinkRequest) error
 		}
 		addr.Broadcast = calcBroadcast
 	}
-	req.AddData(nl.NewRtAttr(unix.IFA_BROADCAST, addr.Broadcast))
+	req.AddData(nl.NewRtAttr(syscall.IFA_BROADCAST, addr.Broadcast))
 
 	if addr.Label != "" {
-		labelData := nl.NewRtAttr(unix.IFA_LABEL, nl.ZeroTerminated(addr.Label))
+		labelData := nl.NewRtAttr(syscall.IFA_LABEL, nl.ZeroTerminated(addr.Label))
 		req.AddData(labelData)
 	}
 
-	_, err := req.Execute(unix.NETLINK_ROUTE, 0)
+	_, err := req.Execute(syscall.NETLINK_ROUTE, 0)
 	return err
 }
 
@@ -131,11 +132,11 @@ func AddrList(link Link, family int) ([]Addr, error) {
 // Equivalent to: `ip addr show`.
 // The list can be filtered by link and ip family.
 func (h *Handle) AddrList(link Link, family int) ([]Addr, error) {
-	req := h.newNetlinkRequest(unix.RTM_GETADDR, unix.NLM_F_DUMP)
+	req := h.newNetlinkRequest(syscall.RTM_GETADDR, syscall.NLM_F_DUMP)
 	msg := nl.NewIfInfomsg(family)
 	req.AddData(msg)
 
-	msgs, err := req.Execute(unix.NETLINK_ROUTE, unix.RTM_NEWADDR)
+	msgs, err := req.Execute(syscall.NETLINK_ROUTE, syscall.RTM_NEWADDR)
 	if err != nil {
 		return nil, err
 	}
@@ -187,21 +188,21 @@ func parseAddr(m []byte) (addr Addr, family, index int, err error) {
 	var local, dst *net.IPNet
 	for _, attr := range attrs {
 		switch attr.Attr.Type {
-		case unix.IFA_ADDRESS:
+		case syscall.IFA_ADDRESS:
 			dst = &net.IPNet{
 				IP:   attr.Value,
 				Mask: net.CIDRMask(int(msg.Prefixlen), 8*len(attr.Value)),
 			}
 			addr.Peer = dst
-		case unix.IFA_LOCAL:
+		case syscall.IFA_LOCAL:
 			local = &net.IPNet{
 				IP:   attr.Value,
 				Mask: net.CIDRMask(int(msg.Prefixlen), 8*len(attr.Value)),
 			}
 			addr.IPNet = local
-		case unix.IFA_BROADCAST:
+		case syscall.IFA_BROADCAST:
 			addr.Broadcast = attr.Value
-		case unix.IFA_LABEL:
+		case syscall.IFA_LABEL:
 			addr.Label = string(attr.Value[:len(attr.Value)-1])
 		case IFA_FLAGS:
 			addr.Flags = int(native.Uint32(attr.Value[0:4]))
@@ -236,35 +237,17 @@ type AddrUpdate struct {
 // AddrSubscribe takes a chan down which notifications will be sent
 // when addresses change.  Close the 'done' chan to stop subscription.
 func AddrSubscribe(ch chan<- AddrUpdate, done <-chan struct{}) error {
-	return addrSubscribeAt(netns.None(), netns.None(), ch, done, nil)
+	return addrSubscribe(netns.None(), netns.None(), ch, done)
 }
 
 // AddrSubscribeAt works like AddrSubscribe plus it allows the caller
 // to choose the network namespace in which to subscribe (ns).
 func AddrSubscribeAt(ns netns.NsHandle, ch chan<- AddrUpdate, done <-chan struct{}) error {
-	return addrSubscribeAt(ns, netns.None(), ch, done, nil)
+	return addrSubscribe(ns, netns.None(), ch, done)
 }
 
-// AddrSubscribeOptions contains a set of options to use with
-// AddrSubscribeWithOptions.
-type AddrSubscribeOptions struct {
-	Namespace     *netns.NsHandle
-	ErrorCallback func(error)
-}
-
-// AddrSubscribeWithOptions work like AddrSubscribe but enable to
-// provide additional options to modify the behavior. Currently, the
-// namespace can be provided as well as an error callback.
-func AddrSubscribeWithOptions(ch chan<- AddrUpdate, done <-chan struct{}, options AddrSubscribeOptions) error {
-	if options.Namespace == nil {
-		none := netns.None()
-		options.Namespace = &none
-	}
-	return addrSubscribeAt(*options.Namespace, netns.None(), ch, done, options.ErrorCallback)
-}
-
-func addrSubscribeAt(newNs, curNs netns.NsHandle, ch chan<- AddrUpdate, done <-chan struct{}, cberr func(error)) error {
-	s, err := nl.SubscribeAt(newNs, curNs, unix.NETLINK_ROUTE, unix.RTNLGRP_IPV4_IFADDR, unix.RTNLGRP_IPV6_IFADDR)
+func addrSubscribe(newNs, curNs netns.NsHandle, ch chan<- AddrUpdate, done <-chan struct{}) error {
+	s, err := nl.SubscribeAt(newNs, curNs, syscall.NETLINK_ROUTE, syscall.RTNLGRP_IPV4_IFADDR, syscall.RTNLGRP_IPV6_IFADDR)
 	if err != nil {
 		return err
 	}
@@ -279,31 +262,25 @@ func addrSubscribeAt(newNs, curNs netns.NsHandle, ch chan<- AddrUpdate, done <-c
 		for {
 			msgs, err := s.Receive()
 			if err != nil {
-				if cberr != nil {
-					cberr(err)
-				}
+				log.Printf("netlink.AddrSubscribe: Receive() error: %v", err)
 				return
 			}
 			for _, m := range msgs {
 				msgType := m.Header.Type
-				if msgType != unix.RTM_NEWADDR && msgType != unix.RTM_DELADDR {
-					if cberr != nil {
-						cberr(fmt.Errorf("bad message type: %d", msgType))
-					}
-					return
+				if msgType != syscall.RTM_NEWADDR && msgType != syscall.RTM_DELADDR {
+					log.Printf("netlink.AddrSubscribe: bad message type: %d", msgType)
+					continue
 				}
 
 				addr, _, ifindex, err := parseAddr(m.Data)
 				if err != nil {
-					if cberr != nil {
-						cberr(fmt.Errorf("could not parse address: %v", err))
-					}
-					return
+					log.Printf("netlink.AddrSubscribe: could not parse address: %v", err)
+					continue
 				}
 
 				ch <- AddrUpdate{LinkAddress: *addr.IPNet,
 					LinkIndex:   ifindex,
-					NewAddr:     msgType == unix.RTM_NEWADDR,
+					NewAddr:     msgType == syscall.RTM_NEWADDR,
 					Flags:       addr.Flags,
 					Scope:       addr.Scope,
 					PreferedLft: addr.PreferedLft,

@@ -65,8 +65,7 @@ func NewCmdCreate(f cmdutil.Factory, out, errOut io.Writer) *cobra.Command {
 	var options CreateOptions
 
 	cmd := &cobra.Command{
-		Use: "create -f FILENAME",
-		DisableFlagsInUseLine: true,
+		Use:     "create -f FILENAME",
 		Short:   i18n.T("Create a resource from a file or from stdin."),
 		Long:    createLong,
 		Example: createExample,
@@ -124,7 +123,7 @@ func (o *CreateOptions) ValidateArgs(cmd *cobra.Command, args []string) error {
 		if len(o.FilenameOptions.Filenames) != 1 {
 			return cmdutil.UsageErrorf(cmd, "--raw can only use a single local file or stdin")
 		}
-		if strings.Index(o.FilenameOptions.Filenames[0], "http://") == 0 || strings.Index(o.FilenameOptions.Filenames[0], "https://") == 0 {
+		if strings.HasPrefix(o.FilenameOptions.Filenames[0], "http") {
 			return cmdutil.UsageErrorf(cmd, "--raw cannot read from a url")
 		}
 		if o.FilenameOptions.Recursive {
@@ -279,8 +278,8 @@ func createAndRefresh(info *resource.Info) error {
 
 // NameFromCommandArgs is a utility function for commands that assume the first argument is a resource name
 func NameFromCommandArgs(cmd *cobra.Command, args []string) (string, error) {
-	if len(args) != 1 {
-		return "", cmdutil.UsageErrorf(cmd, "exactly one NAME is required, got %d", len(args))
+	if len(args) == 0 {
+		return "", cmdutil.UsageErrorf(cmd, "NAME is required")
 	}
 	return args[0], nil
 }

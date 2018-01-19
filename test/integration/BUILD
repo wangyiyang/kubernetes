@@ -58,7 +58,6 @@ filegroup(
         "//test/integration/secrets:all-srcs",
         "//test/integration/serviceaccount:all-srcs",
         "//test/integration/storageclasses:all-srcs",
-        "//test/integration/tls:all-srcs",
         "//test/integration/ttlcontroller:all-srcs",
         "//test/integration/volume:all-srcs",
     ],

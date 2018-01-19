@@ -319,22 +319,6 @@ func mapNodeNameToServerName(nodeName types.NodeName) string {
 	return string(nodeName)
 }
 
-// getNodeNameByID maps instanceid to types.NodeName
-func (os *OpenStack) GetNodeNameByID(instanceID string) (types.NodeName, error) {
-	client, err := os.NewComputeV2()
-	var nodeName types.NodeName
-	if err != nil {
-		return nodeName, err
-	}
-
-	server, err := servers.Get(client, instanceID).Extract()
-	if err != nil {
-		return nodeName, err
-	}
-	nodeName = mapServerToNodeName(server)
-	return nodeName, nil
-}
-
 // mapServerToNodeName maps an OpenStack Server to a k8s NodeName
 func mapServerToNodeName(server *servers.Server) types.NodeName {
 	// Node names are always lowercase, and (at least)
@@ -362,14 +346,11 @@ func foreachServer(client *gophercloud.ServiceClient, opts servers.ListOptsBuild
 	return err
 }
 
-func getServerByName(client *gophercloud.ServiceClient, name types.NodeName, showOnlyActive bool) (*servers.Server, error) {
+func getServerByName(client *gophercloud.ServiceClient, name types.NodeName) (*servers.Server, error) {
 	opts := servers.ListOpts{
-		Name: fmt.Sprintf("^%s$", regexp.QuoteMeta(mapNodeNameToServerName(name))),
+		Name:   fmt.Sprintf("^%s$", regexp.QuoteMeta(mapNodeNameToServerName(name))),
+		Status: "ACTIVE",
 	}
-	if showOnlyActive {
-		opts.Status = "ACTIVE"
-	}
-
 	pager := servers.List(client, opts)
 
 	serverList := make([]servers.Server, 0, 1)
@@ -451,7 +432,7 @@ func nodeAddresses(srv *servers.Server) ([]v1.NodeAddress, error) {
 }
 
 func getAddressesByName(client *gophercloud.ServiceClient, name types.NodeName) ([]v1.NodeAddress, error) {
-	srv, err := getServerByName(client, name, true)
+	srv, err := getServerByName(client, name)
 	if err != nil {
 		return nil, err
 	}
@@ -503,6 +484,11 @@ func (os *OpenStack) Clusters() (cloudprovider.Clusters, bool) {
 // ProviderName returns the cloud provider ID.
 func (os *OpenStack) ProviderName() string {
 	return ProviderName
+}
+
+// ScrubDNS filters DNS settings for pods.
+func (os *OpenStack) ScrubDNS(nameServers, searches []string) ([]string, []string) {
+	return nameServers, searches
 }
 
 // HasClusterID returns true if the cluster has a clusterID
@@ -601,7 +587,7 @@ func (os *OpenStack) GetZoneByNodeName(nodeName types.NodeName) (cloudprovider.Z
 		return cloudprovider.Zone{}, err
 	}
 
-	srv, err := getServerByName(compute, nodeName, true)
+	srv, err := getServerByName(compute, nodeName)
 	if err != nil {
 		if err == ErrNotFound {
 			return cloudprovider.Zone{}, cloudprovider.InstanceNotFound

@@ -64,8 +64,6 @@ const (
 	// owner: @vishh
 	// alpha: v1.6
 	//
-	// This is deprecated and will be removed in v1.11. Use DevicePlugins instead.
-	//
 	// Enables support for GPUs as a schedulable resource.
 	// Only Nvidia GPUs are supported as of v1.6.
 	// Works only with Docker Container Runtime.
@@ -118,16 +116,10 @@ const (
 	ExpandPersistentVolumes utilfeature.Feature = "ExpandPersistentVolumes"
 
 	// owner: @verb
-	// alpha: v1.10
+	// alpha: v1.8
 	//
 	// Allows running a "debug container" in a pod namespaces to troubleshoot a running pod.
 	DebugContainers utilfeature.Feature = "DebugContainers"
-
-	// owner: @verb
-	// alpha: v1.10
-	//
-	// Allows all containers in a pod to share a process namespace.
-	PodShareProcessNamespace utilfeature.Feature = "PodShareProcessNamespace"
 
 	// owner: @bsalamat
 	// alpha: v1.8
@@ -161,13 +153,13 @@ const (
 	CPUManager utilfeature.Feature = "CPUManager"
 
 	// owner: @derekwaynecarr
-	// beta: v1.10
+	// alpha: v1.8
 	//
 	// Enable pods to consume pre-allocated huge pages of varying page sizes
 	HugePages utilfeature.Feature = "HugePages"
 
 	// owner @brendandburns
-	// alpha: v1.9
+	// alpha: v1.8
 	//
 	// Enable nodes to exclude themselves from service load balancers
 	ServiceNodeExclusion utilfeature.Feature = "ServiceNodeExclusion"
@@ -243,15 +235,14 @@ var defaultKubernetesFeatureGates = map[utilfeature.Feature]utilfeature.FeatureS
 	RotateKubeletClientCertificate:              {Default: true, PreRelease: utilfeature.Beta},
 	PersistentLocalVolumes:                      {Default: false, PreRelease: utilfeature.Alpha},
 	LocalStorageCapacityIsolation:               {Default: false, PreRelease: utilfeature.Alpha},
-	HugePages:                                   {Default: true, PreRelease: utilfeature.Beta},
+	HugePages:                                   {Default: false, PreRelease: utilfeature.Alpha},
 	DebugContainers:                             {Default: false, PreRelease: utilfeature.Alpha},
-	PodShareProcessNamespace:                    {Default: false, PreRelease: utilfeature.Alpha},
 	PodPriority:                                 {Default: false, PreRelease: utilfeature.Alpha},
 	EnableEquivalenceClassCache:                 {Default: false, PreRelease: utilfeature.Alpha},
 	TaintNodesByCondition:                       {Default: false, PreRelease: utilfeature.Alpha},
 	MountPropagation:                            {Default: false, PreRelease: utilfeature.Alpha},
 	ExpandPersistentVolumes:                     {Default: false, PreRelease: utilfeature.Alpha},
-	CPUManager:                                  {Default: true, PreRelease: utilfeature.Beta},
+	CPUManager:                                  {Default: false, PreRelease: utilfeature.Alpha},
 	ServiceNodeExclusion:                        {Default: false, PreRelease: utilfeature.Alpha},
 	MountContainers:                             {Default: false, PreRelease: utilfeature.Alpha},
 	VolumeScheduling:                            {Default: false, PreRelease: utilfeature.Alpha},

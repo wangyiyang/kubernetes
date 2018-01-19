@@ -116,22 +116,13 @@ go_library(
         "volume_prune.go",
         "volume_remove.go",
     ] + select({
-        "@io_bazel_rules_go//go/platform:darwin": [
+        "@io_bazel_rules_go//go/platform:darwin_amd64": [
             "client_unix.go",
         ],
-        "@io_bazel_rules_go//go/platform:freebsd": [
+        "@io_bazel_rules_go//go/platform:linux_amd64": [
             "client_unix.go",
         ],
-        "@io_bazel_rules_go//go/platform:linux": [
-            "client_unix.go",
-        ],
-        "@io_bazel_rules_go//go/platform:openbsd": [
-            "client_unix.go",
-        ],
-        "@io_bazel_rules_go//go/platform:solaris": [
-            "client_unix.go",
-        ],
-        "@io_bazel_rules_go//go/platform:windows": [
+        "@io_bazel_rules_go//go/platform:windows_amd64": [
             "client_windows.go",
         ],
         "//conditions:default": [],

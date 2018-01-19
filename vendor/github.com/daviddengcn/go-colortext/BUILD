@@ -4,38 +4,9 @@ go_library(
     name = "go_default_library",
     srcs = [
         "ct.go",
+        "ct_ansi.go",
     ] + select({
-        "@io_bazel_rules_go//go/platform:android": [
-            "ct_ansi.go",
-        ],
-        "@io_bazel_rules_go//go/platform:darwin": [
-            "ct_ansi.go",
-        ],
-        "@io_bazel_rules_go//go/platform:dragonfly": [
-            "ct_ansi.go",
-        ],
-        "@io_bazel_rules_go//go/platform:freebsd": [
-            "ct_ansi.go",
-        ],
-        "@io_bazel_rules_go//go/platform:linux": [
-            "ct_ansi.go",
-        ],
-        "@io_bazel_rules_go//go/platform:nacl": [
-            "ct_ansi.go",
-        ],
-        "@io_bazel_rules_go//go/platform:netbsd": [
-            "ct_ansi.go",
-        ],
-        "@io_bazel_rules_go//go/platform:openbsd": [
-            "ct_ansi.go",
-        ],
-        "@io_bazel_rules_go//go/platform:plan9": [
-            "ct_ansi.go",
-        ],
-        "@io_bazel_rules_go//go/platform:solaris": [
-            "ct_ansi.go",
-        ],
-        "@io_bazel_rules_go//go/platform:windows": [
+        "@io_bazel_rules_go//go/platform:windows_amd64": [
             "ct_win.go",
         ],
         "//conditions:default": [],

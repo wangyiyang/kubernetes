@@ -16,7 +16,7 @@
 
 # A set of helpers for starting/running etcd for tests
 
-ETCD_VERSION=${ETCD_VERSION:-3.1.10}
+ETCD_VERSION=${ETCD_VERSION:-3.1.11}
 ETCD_HOST=${ETCD_HOST:-127.0.0.1}
 ETCD_PORT=${ETCD_PORT:-2379}
 
@@ -74,16 +74,12 @@ kube::etcd::start() {
 }
 
 kube::etcd::stop() {
-  if [[ -n "${ETCD_PID-}" ]]; then
-    kill "${ETCD_PID}" &>/dev/null || :
-    wait "${ETCD_PID}" &>/dev/null || :
-  fi
+  kill "${ETCD_PID-}" >/dev/null 2>&1 || :
+  wait "${ETCD_PID-}" >/dev/null 2>&1 || :
 }
 
 kube::etcd::clean_etcd_dir() {
-  if [[ -n "${ETCD_DIR-}" ]]; then
-    rm -rf "${ETCD_DIR}"
-  fi
+  rm -rf "${ETCD_DIR-}"
 }
 
 kube::etcd::cleanup() {

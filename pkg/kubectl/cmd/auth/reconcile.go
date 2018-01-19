@@ -64,8 +64,7 @@ func NewCmdReconcile(f cmdutil.Factory, out, err io.Writer) *cobra.Command {
 	}
 
 	cmd := &cobra.Command{
-		Use: "reconcile -f FILENAME",
-		DisableFlagsInUseLine: true,
+		Use:     "reconcile -f FILENAME",
 		Short:   "Reconciles rules for RBAC Role, RoleBinding, ClusterRole, and ClusterRole binding objects",
 		Long:    reconcileLong,
 		Example: reconcileExample,

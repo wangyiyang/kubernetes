@@ -234,6 +234,7 @@ func TestCPUManagerGenerate(t *testing.T) {
 		cpuPolicyName              string
 		nodeAllocatableReservation v1.ResourceList
 		isTopologyBroken           bool
+		panicMsg                   string
 		expectedPolicy             string
 		expectedError              error
 		skipIfPermissionsError     bool
@@ -269,14 +270,14 @@ func TestCPUManagerGenerate(t *testing.T) {
 			description:                "static policy - broken reservation",
 			cpuPolicyName:              "static",
 			nodeAllocatableReservation: v1.ResourceList{},
-			expectedError:              fmt.Errorf("unable to determine reserved CPU resources for static policy"),
+			panicMsg:                   "unable to determine reserved CPU resources for static policy",
 			skipIfPermissionsError:     true,
 		},
 		{
 			description:                "static policy - no CPU resources",
 			cpuPolicyName:              "static",
 			nodeAllocatableReservation: v1.ResourceList{v1.ResourceCPU: *resource.NewQuantity(0, resource.DecimalSI)},
-			expectedError:              fmt.Errorf("the static policy requires systemreserved.cpu + kubereserved.cpu to be greater than zero"),
+			panicMsg:                   "the static policy requires systemreserved.cpu + kubereserved.cpu to be greater than zero",
 			skipIfPermissionsError:     true,
 		},
 	}
@@ -318,6 +319,19 @@ func TestCPUManagerGenerate(t *testing.T) {
 				t.Errorf("cannot create state file: %s", err.Error())
 			}
 			defer os.RemoveAll(sDir)
+			defer func() {
+				if err := recover(); err != nil {
+					if testCase.panicMsg != "" {
+						if !strings.Contains(err.(string), testCase.panicMsg) {
+							t.Errorf("Unexpected panic message. Have: %q wants %q", err, testCase.panicMsg)
+						}
+					} else {
+						t.Errorf("Unexpected panic: %q", err)
+					}
+				} else if testCase.panicMsg != "" {
+					t.Error("Expected panic hasn't been raised")
+				}
+			}()
 
 			mgr, err := NewManager(testCase.cpuPolicyName, 5*time.Second, machineInfo, testCase.nodeAllocatableReservation, sDir)
 			if testCase.expectedError != nil {

@@ -47,10 +47,7 @@ func (l *linuxSetnsInit) Init() error {
 			return err
 		}
 	}
-	// Without NoNewPrivileges seccomp is a privileged operation, so we need to
-	// do this before dropping capabilities; otherwise do it as late as possible
-	// just before execve so as few syscalls take place after it as possible.
-	if l.config.Config.Seccomp != nil && !l.config.NoNewPrivileges {
+	if l.config.Config.Seccomp != nil {
 		if err := seccomp.InitSeccomp(l.config.Config.Seccomp); err != nil {
 			return err
 		}
@@ -63,14 +60,6 @@ func (l *linuxSetnsInit) Init() error {
 	}
 	if err := label.SetProcessLabel(l.config.ProcessLabel); err != nil {
 		return err
-	}
-	// Set seccomp as close to execve as possible, so as few syscalls take
-	// place afterward (reducing the amount of syscalls that users need to
-	// enable in their seccomp profiles).
-	if l.config.Config.Seccomp != nil && l.config.NoNewPrivileges {
-		if err := seccomp.InitSeccomp(l.config.Config.Seccomp); err != nil {
-			return newSystemErrorWithCause(err, "init seccomp")
-		}
 	}
 	return system.Execv(l.config.Args[0], l.config.Args[0:], os.Environ())
 }

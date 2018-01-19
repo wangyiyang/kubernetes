@@ -587,9 +587,9 @@ func GetDeletableResources(discoveryClient discovery.ServerResourcesInterface) m
 	preferredResources, err := discoveryClient.ServerPreferredResources()
 	if err != nil {
 		if discovery.IsGroupDiscoveryFailedError(err) {
-			glog.Warningf("failed to discover some groups: %v", err.(*discovery.ErrGroupDiscoveryFailed).Groups)
+			glog.Warning("failed to discover some groups: %v", err.(*discovery.ErrGroupDiscoveryFailed).Groups)
 		} else {
-			glog.Warningf("failed to discover preferred resources: %v", err)
+			glog.Warning("failed to discover preferred resources: %v", err)
 		}
 	}
 	if preferredResources == nil {
@@ -603,7 +603,7 @@ func GetDeletableResources(discoveryClient discovery.ServerResourcesInterface) m
 	for _, rl := range deletableResources {
 		gv, err := schema.ParseGroupVersion(rl.GroupVersion)
 		if err != nil {
-			glog.Warningf("ignoring invalid discovered resource %q: %v", rl.GroupVersion, err)
+			glog.Warning("ignoring invalid discovered resource %q: %v", rl.GroupVersion, err)
 			continue
 		}
 		for i := range rl.APIResources {

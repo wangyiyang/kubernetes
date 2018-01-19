@@ -179,8 +179,9 @@ func (kl *Kubelet) GetHostname() string {
 	return kl.hostname
 }
 
-// getRuntime returns the current Runtime implementation in use by the kubelet.
-func (kl *Kubelet) getRuntime() kubecontainer.Runtime {
+// GetRuntime returns the current Runtime implementation in use by the kubelet. This func
+// is exported to simplify integration with third party kubelet extensions (e.g. kubernetes-mesos).
+func (kl *Kubelet) GetRuntime() kubecontainer.Runtime {
 	return kl.containerRuntime
 }
 

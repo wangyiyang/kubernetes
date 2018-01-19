@@ -5,37 +5,15 @@ go_library(
     srcs = [
         "terminal.go",
     ] + select({
-        "@io_bazel_rules_go//go/platform:darwin": [
+        "@io_bazel_rules_go//go/platform:darwin_amd64": [
             "util.go",
             "util_bsd.go",
         ],
-        "@io_bazel_rules_go//go/platform:dragonfly": [
-            "util.go",
-            "util_bsd.go",
-        ],
-        "@io_bazel_rules_go//go/platform:freebsd": [
-            "util.go",
-            "util_bsd.go",
-        ],
-        "@io_bazel_rules_go//go/platform:linux": [
+        "@io_bazel_rules_go//go/platform:linux_amd64": [
             "util.go",
             "util_linux.go",
         ],
-        "@io_bazel_rules_go//go/platform:netbsd": [
-            "util.go",
-            "util_bsd.go",
-        ],
-        "@io_bazel_rules_go//go/platform:openbsd": [
-            "util.go",
-            "util_bsd.go",
-        ],
-        "@io_bazel_rules_go//go/platform:plan9": [
-            "util_plan9.go",
-        ],
-        "@io_bazel_rules_go//go/platform:solaris": [
-            "util_solaris.go",
-        ],
-        "@io_bazel_rules_go//go/platform:windows": [
+        "@io_bazel_rules_go//go/platform:windows_amd64": [
             "util_windows.go",
         ],
         "//conditions:default": [],
@@ -43,28 +21,13 @@ go_library(
     importpath = "golang.org/x/crypto/ssh/terminal",
     visibility = ["//visibility:public"],
     deps = select({
-        "@io_bazel_rules_go//go/platform:darwin": [
+        "@io_bazel_rules_go//go/platform:darwin_amd64": [
             "//vendor/golang.org/x/sys/unix:go_default_library",
         ],
-        "@io_bazel_rules_go//go/platform:dragonfly": [
+        "@io_bazel_rules_go//go/platform:linux_amd64": [
             "//vendor/golang.org/x/sys/unix:go_default_library",
         ],
-        "@io_bazel_rules_go//go/platform:freebsd": [
-            "//vendor/golang.org/x/sys/unix:go_default_library",
-        ],
-        "@io_bazel_rules_go//go/platform:linux": [
-            "//vendor/golang.org/x/sys/unix:go_default_library",
-        ],
-        "@io_bazel_rules_go//go/platform:netbsd": [
-            "//vendor/golang.org/x/sys/unix:go_default_library",
-        ],
-        "@io_bazel_rules_go//go/platform:openbsd": [
-            "//vendor/golang.org/x/sys/unix:go_default_library",
-        ],
-        "@io_bazel_rules_go//go/platform:solaris": [
-            "//vendor/golang.org/x/sys/unix:go_default_library",
-        ],
-        "@io_bazel_rules_go//go/platform:windows": [
+        "@io_bazel_rules_go//go/platform:windows_amd64": [
             "//vendor/golang.org/x/sys/windows:go_default_library",
         ],
         "//conditions:default": [],

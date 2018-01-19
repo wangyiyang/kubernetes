@@ -66,8 +66,7 @@ func NewCmdCreateClusterRole(f cmdutil.Factory, cmdOut io.Writer) *cobra.Command
 		},
 	}
 	cmd := &cobra.Command{
-		Use: "clusterrole NAME --verb=verb --resource=resource.group [--resource-name=resourcename] [--dry-run]",
-		DisableFlagsInUseLine: true,
+		Use:     "clusterrole NAME --verb=verb --resource=resource.group [--resource-name=resourcename] [--dry-run]",
 		Short:   clusterRoleLong,
 		Long:    clusterRoleLong,
 		Example: clusterRoleExample,

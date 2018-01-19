@@ -30,7 +30,6 @@ import (
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
 	"k8s.io/api/core/v1"
 
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -46,14 +45,14 @@ const (
 	// waiting for specified volume status. Starting with 1
 	// seconds, multiplying by 1.2 with each step and taking 13 steps at maximum
 	// it will time out after 32s, which roughly corresponds to 30s
-	volumeStatusInitDelay = 1 * time.Second
+	volumeStatusInitDealy = 1 * time.Second
 	volumeStatusFactor    = 1.2
 	volumeStatusSteps     = 13
 )
 
 func WaitForVolumeStatus(t *testing.T, os *OpenStack, volumeName string, status string) {
 	backoff := wait.Backoff{
-		Duration: volumeStatusInitDelay,
+		Duration: volumeStatusInitDealy,
 		Factor:   volumeStatusFactor,
 		Steps:    volumeStatusSteps,
 	}
@@ -551,18 +550,6 @@ func TestVolumes(t *testing.T) {
 
 		WaitForVolumeStatus(t, os, vol, volumeAvailableStatus)
 	}
-
-	expectedVolSize := resource.MustParse("2Gi")
-	newVolSize, err := os.ExpandVolume(vol, resource.MustParse("1Gi"), expectedVolSize)
-	if err != nil {
-		t.Fatalf("Cannot expand a Cinder volume: %v", err)
-	}
-	if newVolSize != expectedVolSize {
-		t.Logf("Expected: %v but got: %v ", expectedVolSize, newVolSize)
-	}
-	t.Logf("Volume expanded to (%v) \n", newVolSize)
-
-	WaitForVolumeStatus(t, os, vol, volumeAvailableStatus)
 
 	err = os.DeleteVolume(vol)
 	if err != nil {

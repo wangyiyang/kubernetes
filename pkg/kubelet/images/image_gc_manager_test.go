@@ -112,7 +112,7 @@ func TestDetectImagesInitialDetect(t *testing.T) {
 	}
 
 	startTime := time.Now().Add(-time.Millisecond)
-	_, err := manager.detectImages(zero)
+	err := manager.detectImages(zero)
 	assert := assert.New(t)
 	require.NoError(t, err)
 	assert.Equal(manager.imageRecordsLen(), 3)
@@ -145,7 +145,7 @@ func TestDetectImagesWithNewImage(t *testing.T) {
 		}},
 	}
 
-	_, err := manager.detectImages(zero)
+	err := manager.detectImages(zero)
 	assert := assert.New(t)
 	require.NoError(t, err)
 	assert.Equal(manager.imageRecordsLen(), 2)
@@ -159,7 +159,7 @@ func TestDetectImagesWithNewImage(t *testing.T) {
 
 	detectedTime := zero.Add(time.Second)
 	startTime := time.Now().Add(-time.Millisecond)
-	_, err = manager.detectImages(detectedTime)
+	err = manager.detectImages(detectedTime)
 	require.NoError(t, err)
 	assert.Equal(manager.imageRecordsLen(), 3)
 	noContainer, ok := manager.getImageRecord(imageID(0))
@@ -190,7 +190,7 @@ func TestDetectImagesContainerStopped(t *testing.T) {
 		}},
 	}
 
-	_, err := manager.detectImages(zero)
+	err := manager.detectImages(zero)
 	assert := assert.New(t)
 	require.NoError(t, err)
 	assert.Equal(manager.imageRecordsLen(), 2)
@@ -199,7 +199,7 @@ func TestDetectImagesContainerStopped(t *testing.T) {
 
 	// Simulate container being stopped.
 	fakeRuntime.AllPodList = []*containertest.FakePod{}
-	_, err = manager.detectImages(time.Now())
+	err = manager.detectImages(time.Now())
 	require.NoError(t, err)
 	assert.Equal(manager.imageRecordsLen(), 2)
 	container1, ok := manager.getImageRecord(imageID(0))
@@ -226,14 +226,14 @@ func TestDetectImagesWithRemovedImages(t *testing.T) {
 		}},
 	}
 
-	_, err := manager.detectImages(zero)
+	err := manager.detectImages(zero)
 	assert := assert.New(t)
 	require.NoError(t, err)
 	assert.Equal(manager.imageRecordsLen(), 2)
 
 	// Simulate both images being removed.
 	fakeRuntime.ImageList = []container.Image{}
-	_, err = manager.detectImages(time.Now())
+	err = manager.detectImages(time.Now())
 	require.NoError(t, err)
 	assert.Equal(manager.imageRecordsLen(), 0)
 }
@@ -297,8 +297,7 @@ func TestFreeSpaceRemoveByLeastRecentlyUsed(t *testing.T) {
 	}
 
 	// Make 1 be more recently used than 0.
-	_, err := manager.detectImages(zero)
-	require.NoError(t, err)
+	require.NoError(t, manager.detectImages(zero))
 	fakeRuntime.AllPodList = []*containertest.FakePod{
 		{Pod: &container.Pod{
 			Containers: []*container.Container{
@@ -306,15 +305,13 @@ func TestFreeSpaceRemoveByLeastRecentlyUsed(t *testing.T) {
 			},
 		}},
 	}
-	_, err = manager.detectImages(time.Now())
-	require.NoError(t, err)
+	require.NoError(t, manager.detectImages(time.Now()))
 	fakeRuntime.AllPodList = []*containertest.FakePod{
 		{Pod: &container.Pod{
 			Containers: []*container.Container{},
 		}},
 	}
-	_, err = manager.detectImages(time.Now())
-	require.NoError(t, err)
+	require.NoError(t, manager.detectImages(time.Now()))
 	require.Equal(t, manager.imageRecordsLen(), 2)
 
 	spaceFreed, err := manager.freeSpace(1024, time.Now())
@@ -338,17 +335,14 @@ func TestFreeSpaceTiesBrokenByDetectedTime(t *testing.T) {
 	}
 
 	// Make 1 more recently detected but used at the same time as 0.
-	_, err := manager.detectImages(zero)
-	require.NoError(t, err)
+	require.NoError(t, manager.detectImages(zero))
 	fakeRuntime.ImageList = []container.Image{
 		makeImage(0, 1024),
 		makeImage(1, 2048),
 	}
-	_, err = manager.detectImages(time.Now())
-	require.NoError(t, err)
+	require.NoError(t, manager.detectImages(time.Now()))
 	fakeRuntime.AllPodList = []*containertest.FakePod{}
-	_, err = manager.detectImages(time.Now())
-	require.NoError(t, err)
+	require.NoError(t, manager.detectImages(time.Now()))
 	require.Equal(t, manager.imageRecordsLen(), 2)
 
 	spaceFreed, err := manager.freeSpace(1024, time.Now())
@@ -454,8 +448,7 @@ func TestGarbageCollectImageNotOldEnough(t *testing.T) {
 
 	fakeClock := clock.NewFakeClock(time.Now())
 	t.Log(fakeClock.Now())
-	_, err := manager.detectImages(fakeClock.Now())
-	require.NoError(t, err)
+	require.NoError(t, manager.detectImages(fakeClock.Now()))
 	require.Equal(t, manager.imageRecordsLen(), 2)
 	// no space freed since one image is in used, and another one is not old enough
 	spaceFreed, err := manager.freeSpace(1024, fakeClock.Now())

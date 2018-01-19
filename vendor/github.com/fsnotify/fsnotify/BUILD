@@ -2,49 +2,18 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "go_default_library",
-    srcs = select({
-        "@io_bazel_rules_go//go/platform:android": [
-            "fsnotify.go",
-        ],
-        "@io_bazel_rules_go//go/platform:darwin": [
-            "fsnotify.go",
+    srcs = [
+        "fsnotify.go",
+    ] + select({
+        "@io_bazel_rules_go//go/platform:darwin_amd64": [
             "kqueue.go",
             "open_mode_darwin.go",
         ],
-        "@io_bazel_rules_go//go/platform:dragonfly": [
-            "fsnotify.go",
-            "kqueue.go",
-            "open_mode_bsd.go",
-        ],
-        "@io_bazel_rules_go//go/platform:freebsd": [
-            "fsnotify.go",
-            "kqueue.go",
-            "open_mode_bsd.go",
-        ],
-        "@io_bazel_rules_go//go/platform:linux": [
-            "fsnotify.go",
+        "@io_bazel_rules_go//go/platform:linux_amd64": [
             "inotify.go",
             "inotify_poller.go",
         ],
-        "@io_bazel_rules_go//go/platform:nacl": [
-            "fsnotify.go",
-        ],
-        "@io_bazel_rules_go//go/platform:netbsd": [
-            "fsnotify.go",
-            "kqueue.go",
-            "open_mode_bsd.go",
-        ],
-        "@io_bazel_rules_go//go/platform:openbsd": [
-            "fsnotify.go",
-            "kqueue.go",
-            "open_mode_bsd.go",
-        ],
-        "@io_bazel_rules_go//go/platform:solaris": [
-            "fen.go",
-            "fsnotify.go",
-        ],
-        "@io_bazel_rules_go//go/platform:windows": [
-            "fsnotify.go",
+        "@io_bazel_rules_go//go/platform:windows_amd64": [
             "windows.go",
         ],
         "//conditions:default": [],
@@ -52,22 +21,10 @@ go_library(
     importpath = "github.com/fsnotify/fsnotify",
     visibility = ["//visibility:public"],
     deps = select({
-        "@io_bazel_rules_go//go/platform:darwin": [
+        "@io_bazel_rules_go//go/platform:darwin_amd64": [
             "//vendor/golang.org/x/sys/unix:go_default_library",
         ],
-        "@io_bazel_rules_go//go/platform:dragonfly": [
-            "//vendor/golang.org/x/sys/unix:go_default_library",
-        ],
-        "@io_bazel_rules_go//go/platform:freebsd": [
-            "//vendor/golang.org/x/sys/unix:go_default_library",
-        ],
-        "@io_bazel_rules_go//go/platform:linux": [
-            "//vendor/golang.org/x/sys/unix:go_default_library",
-        ],
-        "@io_bazel_rules_go//go/platform:netbsd": [
-            "//vendor/golang.org/x/sys/unix:go_default_library",
-        ],
-        "@io_bazel_rules_go//go/platform:openbsd": [
+        "@io_bazel_rules_go//go/platform:linux_amd64": [
             "//vendor/golang.org/x/sys/unix:go_default_library",
         ],
         "//conditions:default": [],

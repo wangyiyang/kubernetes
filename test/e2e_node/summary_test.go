@@ -75,11 +75,7 @@ var _ = framework.KubeDescribe("Summary API", func() {
 				maxStartAge = time.Hour * 24 * 365 // 1 year
 				maxStatsAge = time.Minute
 			)
-			// fetch node so we can know proper node memory bounds for unconstrained cgroups
-			node := getLocalNode(f)
-			memoryCapacity := node.Status.Capacity["memory"]
-			memoryLimit := memoryCapacity.Value()
-			fsCapacityBounds := bounded(100*framework.Mb, 10*framework.Tb)
+			fsCapacityBounds := bounded(100*framework.Mb, 100*framework.Gb)
 			// Expectations for system containers.
 			sysContExpectations := func() types.GomegaMatcher {
 				return gstruct.MatchAllFields(gstruct.Fields{
@@ -94,10 +90,10 @@ var _ = framework.KubeDescribe("Summary API", func() {
 						"Time": recent(maxStatsAge),
 						// We don't limit system container memory.
 						"AvailableBytes":  BeNil(),
-						"UsageBytes":      bounded(1*framework.Mb, memoryLimit),
-						"WorkingSetBytes": bounded(1*framework.Mb, memoryLimit),
+						"UsageBytes":      bounded(1*framework.Mb, 10*framework.Gb),
+						"WorkingSetBytes": bounded(1*framework.Mb, 10*framework.Gb),
 						// this now returns /sys/fs/cgroup/memory.stat total_rss
-						"RSSBytes":        bounded(1*framework.Mb, memoryLimit),
+						"RSSBytes":        bounded(1*framework.Mb, 1*framework.Gb),
 						"PageFaults":      bounded(1000, 1E9),
 						"MajorPageFaults": bounded(0, 100000),
 					}),
@@ -120,9 +116,9 @@ var _ = framework.KubeDescribe("Summary API", func() {
 					"Time": recent(maxStatsAge),
 					// We don't limit system container memory.
 					"AvailableBytes":  BeNil(),
-					"UsageBytes":      bounded(100*framework.Kb, memoryLimit),
-					"WorkingSetBytes": bounded(100*framework.Kb, memoryLimit),
-					"RSSBytes":        bounded(100*framework.Kb, memoryLimit),
+					"UsageBytes":      bounded(100*framework.Kb, 10*framework.Gb),
+					"WorkingSetBytes": bounded(100*framework.Kb, 10*framework.Gb),
+					"RSSBytes":        bounded(100*framework.Kb, 1*framework.Gb),
 					"PageFaults":      bounded(1000, 1E9),
 					"MajorPageFaults": bounded(0, 100000),
 				})
@@ -235,11 +231,11 @@ var _ = framework.KubeDescribe("Summary API", func() {
 					}),
 					"Memory": ptrMatchAllFields(gstruct.Fields{
 						"Time":            recent(maxStatsAge),
-						"AvailableBytes":  bounded(100*framework.Mb, memoryLimit),
-						"UsageBytes":      bounded(10*framework.Mb, memoryLimit),
-						"WorkingSetBytes": bounded(10*framework.Mb, memoryLimit),
+						"AvailableBytes":  bounded(100*framework.Mb, 100*framework.Gb),
+						"UsageBytes":      bounded(10*framework.Mb, 10*framework.Gb),
+						"WorkingSetBytes": bounded(10*framework.Mb, 10*framework.Gb),
 						// this now returns /sys/fs/cgroup/memory.stat total_rss
-						"RSSBytes":        bounded(1*framework.Kb, memoryLimit),
+						"RSSBytes":        bounded(1*framework.Kb, 1*framework.Gb),
 						"PageFaults":      bounded(1000, 1E9),
 						"MajorPageFaults": bounded(0, 100000),
 					}),

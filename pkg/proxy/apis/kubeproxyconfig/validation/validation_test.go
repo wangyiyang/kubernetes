@@ -30,12 +30,6 @@ import (
 )
 
 func TestValidateKubeProxyConfiguration(t *testing.T) {
-	var proxyMode kubeproxyconfig.ProxyMode
-	if runtime.GOOS == "windows" {
-		proxyMode = kubeproxyconfig.ProxyModeKernelspace
-	} else {
-		proxyMode = kubeproxyconfig.ProxyModeIPVS
-	}
 	successCases := []kubeproxyconfig.KubeProxyConfiguration{
 		{
 			BindAddress:        "192.168.59.103",
@@ -49,30 +43,9 @@ func TestValidateKubeProxyConfiguration(t *testing.T) {
 				SyncPeriod:    metav1.Duration{Duration: 5 * time.Second},
 				MinSyncPeriod: metav1.Duration{Duration: 2 * time.Second},
 			},
-			Mode: proxyMode,
 			IPVS: kubeproxyconfig.KubeProxyIPVSConfiguration{
 				SyncPeriod:    metav1.Duration{Duration: 10 * time.Second},
 				MinSyncPeriod: metav1.Duration{Duration: 5 * time.Second},
-			},
-			Conntrack: kubeproxyconfig.KubeProxyConntrackConfiguration{
-				Max:        pointer.Int32Ptr(2),
-				MaxPerCore: pointer.Int32Ptr(1),
-				Min:        pointer.Int32Ptr(1),
-				TCPEstablishedTimeout: &metav1.Duration{Duration: 5 * time.Second},
-				TCPCloseWaitTimeout:   &metav1.Duration{Duration: 5 * time.Second},
-			},
-		},
-		{
-			BindAddress:        "192.168.59.103",
-			HealthzBindAddress: "0.0.0.0:10256",
-			MetricsBindAddress: "127.0.0.1:10249",
-			ClusterCIDR:        "192.168.59.0/24",
-			UDPIdleTimeout:     metav1.Duration{Duration: 1 * time.Second},
-			ConfigSyncPeriod:   metav1.Duration{Duration: 1 * time.Second},
-			IPTables: kubeproxyconfig.KubeProxyIPTablesConfiguration{
-				MasqueradeAll: true,
-				SyncPeriod:    metav1.Duration{Duration: 5 * time.Second},
-				MinSyncPeriod: metav1.Duration{Duration: 2 * time.Second},
 			},
 			Conntrack: kubeproxyconfig.KubeProxyConntrackConfiguration{
 				Max:        pointer.Int32Ptr(2),
@@ -108,6 +81,10 @@ func TestValidateKubeProxyConfiguration(t *testing.T) {
 					SyncPeriod:    metav1.Duration{Duration: 5 * time.Second},
 					MinSyncPeriod: metav1.Duration{Duration: 2 * time.Second},
 				},
+				IPVS: kubeproxyconfig.KubeProxyIPVSConfiguration{
+					SyncPeriod:    metav1.Duration{Duration: 10 * time.Second},
+					MinSyncPeriod: metav1.Duration{Duration: 5 * time.Second},
+				},
 				Conntrack: kubeproxyconfig.KubeProxyConntrackConfiguration{
 					Max:        pointer.Int32Ptr(2),
 					MaxPerCore: pointer.Int32Ptr(1),
@@ -131,6 +108,10 @@ func TestValidateKubeProxyConfiguration(t *testing.T) {
 					MasqueradeAll: true,
 					SyncPeriod:    metav1.Duration{Duration: 5 * time.Second},
 					MinSyncPeriod: metav1.Duration{Duration: 2 * time.Second},
+				},
+				IPVS: kubeproxyconfig.KubeProxyIPVSConfiguration{
+					SyncPeriod:    metav1.Duration{Duration: 10 * time.Second},
+					MinSyncPeriod: metav1.Duration{Duration: 5 * time.Second},
 				},
 				Conntrack: kubeproxyconfig.KubeProxyConntrackConfiguration{
 					Max:        pointer.Int32Ptr(2),
@@ -156,6 +137,10 @@ func TestValidateKubeProxyConfiguration(t *testing.T) {
 					SyncPeriod:    metav1.Duration{Duration: 5 * time.Second},
 					MinSyncPeriod: metav1.Duration{Duration: 2 * time.Second},
 				},
+				IPVS: kubeproxyconfig.KubeProxyIPVSConfiguration{
+					SyncPeriod:    metav1.Duration{Duration: 10 * time.Second},
+					MinSyncPeriod: metav1.Duration{Duration: 5 * time.Second},
+				},
 				Conntrack: kubeproxyconfig.KubeProxyConntrackConfiguration{
 					Max:        pointer.Int32Ptr(2),
 					MaxPerCore: pointer.Int32Ptr(1),
@@ -179,6 +164,10 @@ func TestValidateKubeProxyConfiguration(t *testing.T) {
 					MasqueradeAll: true,
 					SyncPeriod:    metav1.Duration{Duration: 5 * time.Second},
 					MinSyncPeriod: metav1.Duration{Duration: 2 * time.Second},
+				},
+				IPVS: kubeproxyconfig.KubeProxyIPVSConfiguration{
+					SyncPeriod:    metav1.Duration{Duration: 10 * time.Second},
+					MinSyncPeriod: metav1.Duration{Duration: 5 * time.Second},
 				},
 				Conntrack: kubeproxyconfig.KubeProxyConntrackConfiguration{
 					Max:        pointer.Int32Ptr(2),
@@ -204,6 +193,10 @@ func TestValidateKubeProxyConfiguration(t *testing.T) {
 					SyncPeriod:    metav1.Duration{Duration: 5 * time.Second},
 					MinSyncPeriod: metav1.Duration{Duration: 2 * time.Second},
 				},
+				IPVS: kubeproxyconfig.KubeProxyIPVSConfiguration{
+					SyncPeriod:    metav1.Duration{Duration: 10 * time.Second},
+					MinSyncPeriod: metav1.Duration{Duration: 5 * time.Second},
+				},
 				Conntrack: kubeproxyconfig.KubeProxyConntrackConfiguration{
 					Max:        pointer.Int32Ptr(2),
 					MaxPerCore: pointer.Int32Ptr(1),
@@ -228,31 +221,10 @@ func TestValidateKubeProxyConfiguration(t *testing.T) {
 					SyncPeriod:    metav1.Duration{Duration: 5 * time.Second},
 					MinSyncPeriod: metav1.Duration{Duration: 2 * time.Second},
 				},
-				Conntrack: kubeproxyconfig.KubeProxyConntrackConfiguration{
-					Max:        pointer.Int32Ptr(2),
-					MaxPerCore: pointer.Int32Ptr(1),
-					Min:        pointer.Int32Ptr(1),
-					TCPEstablishedTimeout: &metav1.Duration{Duration: 5 * time.Second},
-					TCPCloseWaitTimeout:   &metav1.Duration{Duration: 5 * time.Second},
+				IPVS: kubeproxyconfig.KubeProxyIPVSConfiguration{
+					SyncPeriod:    metav1.Duration{Duration: 10 * time.Second},
+					MinSyncPeriod: metav1.Duration{Duration: 5 * time.Second},
 				},
-			},
-			msg: "must be greater than 0",
-		},
-		{
-			config: kubeproxyconfig.KubeProxyConfiguration{
-				BindAddress:        "192.168.59.103",
-				HealthzBindAddress: "0.0.0.0:10256",
-				MetricsBindAddress: "127.0.0.1:10249",
-				ClusterCIDR:        "192.168.59.0/24",
-				UDPIdleTimeout:     metav1.Duration{Duration: 1 * time.Second},
-				ConfigSyncPeriod:   metav1.Duration{Duration: 1 * time.Second},
-				IPTables: kubeproxyconfig.KubeProxyIPTablesConfiguration{
-					MasqueradeAll: true,
-					SyncPeriod:    metav1.Duration{Duration: 5 * time.Second},
-					MinSyncPeriod: metav1.Duration{Duration: 2 * time.Second},
-				},
-				// not specifying valid period in IPVS mode.
-				Mode: kubeproxyconfig.ProxyModeIPVS,
 				Conntrack: kubeproxyconfig.KubeProxyConntrackConfiguration{
 					Max:        pointer.Int32Ptr(2),
 					MaxPerCore: pointer.Int32Ptr(1),

@@ -230,11 +230,11 @@ func TestPluginNewUnmounter(t *testing.T) {
 	csiUnmounter := unmounter.(*csiMountMgr)
 
 	if err != nil {
-		t.Fatalf("Failed to make a new Unmounter: %v", err)
+		t.Fatalf("Failed to make a new Mounter: %v", err)
 	}
 
 	if csiUnmounter == nil {
-		t.Fatal("failed to create CSI Unmounter")
+		t.Fatal("failed to create CSI mounter")
 	}
 
 	if csiUnmounter.podUID != testPodUID {
@@ -305,6 +305,6 @@ func TestPluginNewDetacher(t *testing.T) {
 		t.Error("plugin not set for detacher")
 	}
 	if csiDetacher.k8s == nil {
-		t.Error("Kubernetes client not set for detacher")
+		t.Error("Kubernetes client not set for attacher")
 	}
 }

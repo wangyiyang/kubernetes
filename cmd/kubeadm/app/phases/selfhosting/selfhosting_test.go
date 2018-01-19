@@ -23,7 +23,7 @@ import (
 	"os"
 	"testing"
 
-	apps "k8s.io/api/apps/v1"
+	apps "k8s.io/api/apps/v1beta2"
 	"k8s.io/kubernetes/cmd/kubeadm/app/constants"
 	"k8s.io/kubernetes/cmd/kubeadm/app/util"
 	volumeutil "k8s.io/kubernetes/pkg/volume/util"
@@ -104,7 +104,7 @@ spec:
 status: {}
 `
 
-	testAPIServerDaemonSet = `apiVersion: apps/v1
+	testAPIServerDaemonSet = `apiVersion: apps/v1beta2
 kind: DaemonSet
 metadata:
   creationTimestamp: null
@@ -134,7 +134,7 @@ spec:
         - --service-cluster-ip-range=10.96.0.0/12
         - --tls-cert-file=/etc/kubernetes/pki/apiserver.crt
         - --kubelet-client-certificate=/etc/kubernetes/pki/apiserver-kubelet-client.crt
-        - --advertise-address=$(HOST_IP)
+        - --advertise-address=192.168.1.115
         - --requestheader-client-ca-file=/etc/kubernetes/pki/front-proxy-ca.crt
         - --insecure-port=0
         - --experimental-bootstrap-token-auth=true
@@ -148,11 +148,6 @@ spec:
         - --proxy-client-key-file=/etc/kubernetes/pki/front-proxy-client.key
         - --authorization-mode=Node,RBAC
         - --etcd-servers=http://127.0.0.1:2379
-        env:
-        - name: HOST_IP
-          valueFrom:
-            fieldRef:
-              fieldPath: status.hostIP
         image: gcr.io/google_containers/kube-apiserver-amd64:v1.7.4
         livenessProbe:
           failureThreshold: 8
@@ -270,7 +265,7 @@ spec:
 status: {}
 `
 
-	testControllerManagerDaemonSet = `apiVersion: apps/v1
+	testControllerManagerDaemonSet = `apiVersion: apps/v1beta2
 kind: DaemonSet
 metadata:
   creationTimestamp: null
@@ -400,7 +395,7 @@ spec:
 status: {}
 `
 
-	testSchedulerDaemonSet = `apiVersion: apps/v1
+	testSchedulerDaemonSet = `apiVersion: apps/v1beta2
 kind: DaemonSet
 metadata:
   creationTimestamp: null

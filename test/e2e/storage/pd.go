@@ -40,7 +40,6 @@ import (
 	v1core "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/kubernetes/pkg/api/testapi"
 	"k8s.io/kubernetes/test/e2e/framework"
-	"k8s.io/kubernetes/test/e2e/storage/utils"
 )
 
 const (
@@ -53,7 +52,7 @@ const (
 	minNodes            = 2
 )
 
-var _ = utils.SIGDescribe("Pod Disks", func() {
+var _ = SIGDescribe("Pod Disks", func() {
 	var (
 		ns         string
 		cs         clientset.Interface

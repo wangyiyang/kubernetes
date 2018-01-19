@@ -74,13 +74,12 @@ type QuotaMonitor struct {
 	// After that it is safe to start them here, before that it is not.
 	informersStarted <-chan struct{}
 
-	// stopCh drives shutdown. When a receive from it unblocks, monitors will shut down.
+	// stopCh drives shutdown. If it is nil, it indicates that Run() has not been
+	// called yet. If it is non-nil, then when closed it indicates everything
+	// should shut down.
+	//
 	// This channel is also protected by monitorLock.
 	stopCh <-chan struct{}
-
-	// running tracks whether Run() has been called.
-	// it is protected by monitorLock.
-	running bool
 
 	// monitors are the producer of the resourceChanges queue
 	resourceChanges workqueue.RateLimitingInterface
@@ -242,7 +241,7 @@ func (qm *QuotaMonitor) startMonitors() {
 	qm.monitorLock.Lock()
 	defer qm.monitorLock.Unlock()
 
-	if !qm.running {
+	if qm.stopCh == nil {
 		return
 	}
 
@@ -292,7 +291,6 @@ func (qm *QuotaMonitor) Run(stopCh <-chan struct{}) {
 	// Set up the stop channel.
 	qm.monitorLock.Lock()
 	qm.stopCh = stopCh
-	qm.running = true
 	qm.monitorLock.Unlock()
 
 	// Start monitors and begin change processing until the stop channel is

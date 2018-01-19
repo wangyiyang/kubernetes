@@ -37,7 +37,6 @@ import (
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
 	restclient "k8s.io/client-go/rest"
-	scaleclient "k8s.io/client-go/scale"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/kubernetes/pkg/apis/apps"
 	"k8s.io/kubernetes/pkg/apis/batch"
@@ -78,13 +77,11 @@ func NewObjectMappingFactory(clientAccessFactory ClientAccessFactory) ObjectMapp
 // the built in mapper if necessary. It supports unstructured objects either way, since
 // the underlying Scheme supports Unstructured. The mapper will return converters that can
 // convert versioned types to unstructured and back.
-// It can return an error and the best effort unstructured mapper and typer.
 func (f *ring1Factory) objectLoader() (meta.RESTMapper, runtime.ObjectTyper, error) {
 	discoveryClient, err := f.clientAccessFactory.DiscoveryClient()
 	if err != nil {
-		unstructuredMapper := discovery.NewRESTMapper(nil, meta.InterfacesForUnstructured)
-		unstructuredTyper := discovery.NewUnstructuredObjectTyper(nil)
-		return unstructuredMapper, unstructuredTyper, err
+		glog.V(3).Infof("Unable to get a discovery client to find server resources, falling back to hardcoded types: %v", err)
+		return legacyscheme.Registry.RESTMapper(), legacyscheme.Scheme, nil
 	}
 
 	groupResources, err := discovery.GetAPIGroupResources(discoveryClient)
@@ -92,11 +89,9 @@ func (f *ring1Factory) objectLoader() (meta.RESTMapper, runtime.ObjectTyper, err
 		discoveryClient.Invalidate()
 		groupResources, err = discovery.GetAPIGroupResources(discoveryClient)
 	}
-	// even if we can't get all the results, we're better off continuing with what we can than not presenting
-	// anything.  This mirrors old behavior that used to fallback to a hardcoded list of API types compiled
-	// into kubernetes.
 	if err != nil {
-		glog.V(1).Infof("Unable to retrieve all API resources, continuing with partial results: %v", err)
+		glog.V(3).Infof("Unable to retrieve API resources, falling back to hardcoded types: %v", err)
+		return legacyscheme.Registry.RESTMapper(), legacyscheme.Scheme, nil
 	}
 
 	// allow conversion between typed and unstructured objects
@@ -291,23 +286,7 @@ func (f *ring1Factory) Scaler(mapping *meta.RESTMapping) (kubectl.Scaler, error)
 	if err != nil {
 		return nil, err
 	}
-
-	// create scales getter
-	// TODO(p0lyn0mial): put scalesGetter to a factory
-	discoClient, err := f.clientAccessFactory.DiscoveryClient()
-	if err != nil {
-		return nil, err
-	}
-	restClient, err := f.clientAccessFactory.RESTClient()
-	if err != nil {
-		return nil, err
-	}
-	mapper, _ := f.Object()
-	resolver := scaleclient.NewDiscoveryScaleKindResolver(discoClient)
-	scalesGetter := scaleclient.New(restClient, mapper, dynamic.LegacyAPIPathResolverFunc, resolver)
-	gvk := mapping.GroupVersionKind.GroupVersion().WithResource(mapping.Resource)
-
-	return kubectl.ScalerFor(mapping.GroupVersionKind.GroupKind(), clientset, scalesGetter, gvk.GroupResource())
+	return kubectl.ScalerFor(mapping.GroupVersionKind.GroupKind(), clientset)
 }
 
 func (f *ring1Factory) Reaper(mapping *meta.RESTMapping) (kubectl.Reaper, error) {

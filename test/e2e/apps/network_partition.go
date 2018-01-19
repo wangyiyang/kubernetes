@@ -33,7 +33,7 @@ import (
 	"k8s.io/api/core/v1"
 	clientset "k8s.io/client-go/kubernetes"
 	api "k8s.io/kubernetes/pkg/apis/core"
-	nodepkg "k8s.io/kubernetes/pkg/controller/nodelifecycle"
+	nodepkg "k8s.io/kubernetes/pkg/controller/node"
 	"k8s.io/kubernetes/test/e2e/common"
 	"k8s.io/kubernetes/test/e2e/framework"
 	testutils "k8s.io/kubernetes/test/utils"

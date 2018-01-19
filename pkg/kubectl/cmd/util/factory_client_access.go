@@ -23,7 +23,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"net/http"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -39,7 +38,6 @@ import (
 	appsv1beta1 "k8s.io/api/apps/v1beta1"
 	appsv1beta2 "k8s.io/api/apps/v1beta2"
 	batchv1 "k8s.io/api/batch/v1"
-	batchv1beta1 "k8s.io/api/batch/v1beta1"
 	batchv2alpha1 "k8s.io/api/batch/v2alpha1"
 	extensionsv1beta1 "k8s.io/api/extensions/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -60,7 +58,6 @@ import (
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
-	"k8s.io/kubernetes/pkg/kubectl/util/transport"
 	"k8s.io/kubernetes/pkg/printers"
 	printersinternal "k8s.io/kubernetes/pkg/printers/internalversion"
 )
@@ -111,15 +108,7 @@ func (f *discoveryFactory) DiscoveryClient() (discovery.CachedDiscoveryInterface
 		return nil, err
 	}
 
-	if f.cacheDir != "" {
-		wt := cfg.WrapTransport
-		cfg.WrapTransport = func(rt http.RoundTripper) http.RoundTripper {
-			if wt != nil {
-				rt = wt(rt)
-			}
-			return transport.NewCacheRoundTripper(f.cacheDir, rt)
-		}
-	}
+	cfg.CacheDir = f.cacheDir
 
 	discoveryClient, err := discovery.NewDiscoveryClientForConfig(cfg)
 	if err != nil {
@@ -286,11 +275,6 @@ func (f *ring0Factory) UpdatePodSpecForObject(obj runtime.Object, fn func(*v1.Po
 	// Job
 	case *batchv1.Job:
 		return true, fn(&t.Spec.Template.Spec)
-	// CronJob
-	case *batchv1beta1.CronJob:
-		return true, fn(&t.Spec.JobTemplate.Spec.Template.Spec)
-	case *batchv2alpha1.CronJob:
-		return true, fn(&t.Spec.JobTemplate.Spec.Template.Spec)
 	default:
 		return false, fmt.Errorf("the object is not a pod or does not have a pod template")
 	}
@@ -553,6 +537,10 @@ func DefaultGenerators(cmdName string) map[string]kubectl.Generator {
 			JobV1GeneratorName:                 kubectl.JobV1{},
 			CronJobV2Alpha1GeneratorName:       kubectl.CronJobV2Alpha1{},
 			CronJobV1Beta1GeneratorName:        kubectl.CronJobV1Beta1{},
+		}
+	case "autoscale":
+		generator = map[string]kubectl.Generator{
+			HorizontalPodAutoscalerV1GeneratorName: kubectl.HorizontalPodAutoscalerV1{},
 		}
 	case "namespace":
 		generator = map[string]kubectl.Generator{

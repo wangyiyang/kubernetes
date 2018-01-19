@@ -28,7 +28,6 @@ import (
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/tools/cache"
-	"k8s.io/client-go/tools/record"
 	"k8s.io/kubernetes/pkg/controller"
 	"k8s.io/kubernetes/pkg/controller/history"
 )
@@ -586,8 +585,7 @@ func newFakeStatefulSetController(initialObjects ...runtime.Object) (*StatefulSe
 	ssh := history.NewFakeHistory(informerFactory.Apps().V1beta1().ControllerRevisions())
 	ssc.podListerSynced = alwaysReady
 	ssc.setListerSynced = alwaysReady
-	recorder := record.NewFakeRecorder(10)
-	ssc.control = NewDefaultStatefulSetControl(fpc, ssu, ssh, recorder)
+	ssc.control = NewDefaultStatefulSetControl(fpc, ssu, ssh)
 
 	return ssc, fpc
 }

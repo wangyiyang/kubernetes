@@ -12,7 +12,6 @@ go_library(
         "float64.go",
         "golangflag.go",
         "int.go",
-        "int16.go",
         "int32.go",
         "int64.go",
         "int8.go",

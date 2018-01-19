@@ -5,7 +5,6 @@ go_library(
     srcs = [
         "framework.go",
         "ubernetes_lite.go",
-        "ubernetes_lite_volumes.go",
     ],
     importpath = "k8s.io/kubernetes/test/e2e/multicluster",
     visibility = ["//visibility:public"],

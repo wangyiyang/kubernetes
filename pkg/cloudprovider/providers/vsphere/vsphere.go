@@ -375,6 +375,14 @@ func newControllerNode(cfg VSphereConfig) (*VSphere, error) {
 	if cfg.Global.VCenterPort == "" {
 		cfg.Global.VCenterPort = "443"
 	}
+	if cfg.Global.VMUUID == "" {
+		// This needs root privileges on the host, and will fail otherwise.
+		cfg.Global.VMUUID, err = getvmUUID()
+		if err != nil {
+			glog.Errorf("Failed to get VM UUID. err: %+v", err)
+			return nil, err
+		}
+	}
 	vsphereInstanceMap, err := populateVsphereInstanceMap(&cfg)
 	if err != nil {
 		return nil, err
@@ -680,6 +688,11 @@ func (vs *VSphere) Zones() (cloudprovider.Zones, bool) {
 // Routes returns a false since the interface is not supported for vSphere.
 func (vs *VSphere) Routes() (cloudprovider.Routes, bool) {
 	return nil, false
+}
+
+// ScrubDNS filters DNS settings for pods.
+func (vs *VSphere) ScrubDNS(nameservers, searches []string) (nsOut, srchOut []string) {
+	return nameservers, searches
 }
 
 // AttachDisk attaches given virtual disk volume to the compute running kubelet.

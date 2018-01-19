@@ -28,18 +28,14 @@ import (
 	"time"
 
 	"k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	utilnet "k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/discovery"
-	cacheddiscovery "k8s.io/client-go/discovery/cached"
 	clientset "k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
-	scaleclient "k8s.io/client-go/scale"
 	"k8s.io/client-go/transport"
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/kubernetes/pkg/apis/batch"
@@ -52,8 +48,6 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"k8s.io/client-go/dynamic"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 )
 
 const (
@@ -315,11 +309,9 @@ var _ = SIGDescribe("Load capacity", func() {
 	}
 })
 
-func createClients(numberOfClients int) ([]clientset.Interface, []internalclientset.Interface, []scaleclient.ScalesGetter, error) {
+func createClients(numberOfClients int) ([]clientset.Interface, []internalclientset.Interface, error) {
 	clients := make([]clientset.Interface, numberOfClients)
 	internalClients := make([]internalclientset.Interface, numberOfClients)
-	scalesClients := make([]scaleclient.ScalesGetter, numberOfClients)
-
 	for i := 0; i < numberOfClients; i++ {
 		config, err := framework.LoadConfig()
 		Expect(err).NotTo(HaveOccurred())
@@ -335,11 +327,11 @@ func createClients(numberOfClients int) ([]clientset.Interface, []internalclient
 		// each client here.
 		transportConfig, err := config.TransportConfig()
 		if err != nil {
-			return nil, nil, nil, err
+			return nil, nil, err
 		}
 		tlsConfig, err := transport.TLSConfigFor(transportConfig)
 		if err != nil {
-			return nil, nil, nil, err
+			return nil, nil, err
 		}
 		config.Transport = utilnet.SetTransportDefaults(&http.Transport{
 			Proxy:               http.ProxyFromEnvironment,
@@ -357,37 +349,16 @@ func createClients(numberOfClients int) ([]clientset.Interface, []internalclient
 
 		c, err := clientset.NewForConfig(config)
 		if err != nil {
-			return nil, nil, nil, err
+			return nil, nil, err
 		}
 		clients[i] = c
 		internalClient, err := internalclientset.NewForConfig(config)
 		if err != nil {
-			return nil, nil, nil, err
+			return nil, nil, err
 		}
 		internalClients[i] = internalClient
-
-		// create scale client, if GroupVersion or NegotiatedSerializer are not set
-		// assign default values - these fields are mandatory (required by RESTClientFor).
-		if config.GroupVersion == nil {
-			config.GroupVersion = &schema.GroupVersion{}
-		}
-		if config.NegotiatedSerializer == nil {
-			config.NegotiatedSerializer = legacyscheme.Codecs
-		}
-		restClient, err := restclient.RESTClientFor(config)
-		if err != nil {
-			return nil, nil, nil, err
-		}
-		discoClient, err := discovery.NewDiscoveryClientForConfig(config)
-		if err != nil {
-			return nil, nil, nil, err
-		}
-		cachedDiscoClient := cacheddiscovery.NewMemCacheClient(discoClient)
-		restMapper := discovery.NewDeferredDiscoveryRESTMapper(cachedDiscoClient, meta.InterfacesForUnstructured)
-		resolver := scaleclient.NewDiscoveryScaleKindResolver(cachedDiscoClient)
-		scalesClients[i] = scaleclient.New(restClient, restMapper, dynamic.LegacyAPIPathResolverFunc, resolver)
 	}
-	return clients, internalClients, scalesClients, nil
+	return clients, internalClients, nil
 }
 
 func computePodCounts(total int) (int, int, int) {
@@ -434,13 +405,12 @@ func generateConfigs(
 	// Create a number of clients to better simulate real usecase
 	// where not everyone is using exactly the same client.
 	rcsPerClient := 20
-	clients, internalClients, scalesClients, err := createClients((len(configs) + rcsPerClient - 1) / rcsPerClient)
+	clients, internalClients, err := createClients((len(configs) + rcsPerClient - 1) / rcsPerClient)
 	framework.ExpectNoError(err)
 
 	for i := 0; i < len(configs); i++ {
 		configs[i].SetClient(clients[i%len(clients)])
 		configs[i].SetInternalClient(internalClients[i%len(internalClients)])
-		configs[i].SetScalesClient(scalesClients[i%len(clients)])
 	}
 	for i := 0; i < len(secretConfigs); i++ {
 		secretConfigs[i].Client = clients[i%len(clients)]
@@ -620,16 +590,7 @@ func scaleResource(wg *sync.WaitGroup, config testutils.RunObjectConfig, scaling
 	sleepUpTo(scalingTime)
 	newSize := uint(rand.Intn(config.GetReplicas()) + config.GetReplicas()/2)
 	framework.ExpectNoError(framework.ScaleResource(
-		config.GetClient(),
-		config.GetInternalClient(),
-		config.GetScalesGetter(),
-		config.GetNamespace(),
-		config.GetName(),
-		newSize,
-		true,
-		config.GetKind(),
-		config.GetGroupResource(),
-	),
+		config.GetClient(), config.GetInternalClient(), config.GetNamespace(), config.GetName(), newSize, true, config.GetKind()),
 		fmt.Sprintf("scaling %v %v", config.GetKind(), config.GetName()))
 
 	selector := labels.SelectorFromSet(labels.Set(map[string]string{"name": config.GetName()}))

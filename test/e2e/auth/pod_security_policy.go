@@ -20,6 +20,7 @@ import (
 	"fmt"
 
 	"k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	extensionsv1beta1 "k8s.io/api/extensions/v1beta1"
 	rbacv1beta1 "k8s.io/api/rbac/v1beta1"
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
@@ -56,7 +57,7 @@ var (
 		Spec: extensionsv1beta1.PodSecurityPolicySpec{
 			Privileged:               false,
 			AllowPrivilegeEscalation: boolPtr(false),
-			RequiredDropCapabilities: []v1.Capability{
+			RequiredDropCapabilities: []corev1.Capability{
 				"AUDIT_WRITE",
 				"CHOWN",
 				"DAC_OVERRIDE",
@@ -130,7 +131,7 @@ var _ = SIGDescribe("PodSecurityPolicy", func() {
 
 	It("should forbid pod creation when no PSP is available", func() {
 		By("Running a restricted pod")
-		_, err := c.CoreV1().Pods(ns).Create(restrictedPod(f, "restricted"))
+		_, err := c.Core().Pods(ns).Create(restrictedPod(f, "restricted"))
 		expectForbidden(err)
 	})
 
@@ -140,12 +141,12 @@ var _ = SIGDescribe("PodSecurityPolicy", func() {
 		defer cleanup()
 
 		By("Running a restricted pod")
-		pod, err := c.CoreV1().Pods(ns).Create(restrictedPod(f, "allowed"))
+		pod, err := c.Core().Pods(ns).Create(restrictedPod(f, "allowed"))
 		framework.ExpectNoError(err)
 		framework.ExpectNoError(framework.WaitForPodNameRunningInNamespace(c, pod.Name, pod.Namespace))
 
 		testPrivilegedPods(f, func(pod *v1.Pod) {
-			_, err := c.CoreV1().Pods(ns).Create(pod)
+			_, err := c.Core().Pods(ns).Create(pod)
 			expectForbidden(err)
 		})
 	})
@@ -159,12 +160,12 @@ var _ = SIGDescribe("PodSecurityPolicy", func() {
 		defer cleanup()
 
 		testPrivilegedPods(f, func(pod *v1.Pod) {
-			p, err := c.CoreV1().Pods(ns).Create(pod)
+			p, err := c.Core().Pods(ns).Create(pod)
 			framework.ExpectNoError(err)
 			framework.ExpectNoError(framework.WaitForPodNameRunningInNamespace(c, p.Name, p.Namespace))
 
 			// Verify expected PSP was used.
-			p, err = c.CoreV1().Pods(ns).Get(p.Name, metav1.GetOptions{})
+			p, err = c.Core().Pods(ns).Get(p.Name, metav1.GetOptions{})
 			framework.ExpectNoError(err)
 			validated, found := p.Annotations[psputil.ValidatedPSPAnnotation]
 			Expect(found).To(BeTrue(), "PSP annotation not found")

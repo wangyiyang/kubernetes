@@ -83,12 +83,11 @@ func NewCmdServiceAccount(f cmdutil.Factory, out, err io.Writer) *cobra.Command 
 	}
 
 	cmd := &cobra.Command{
-		Use: "serviceaccount (-f FILENAME | TYPE NAME) SERVICE_ACCOUNT",
-		DisableFlagsInUseLine: true,
-		Aliases:               []string{"sa"},
-		Short:                 i18n.T("Update ServiceAccount of a resource"),
-		Long:                  serviceaccountLong,
-		Example:               serviceaccountExample,
+		Use:     "serviceaccount (-f FILENAME | TYPE NAME) SERVICE_ACCOUNT",
+		Aliases: []string{"sa"},
+		Short:   i18n.T("Update ServiceAccount of a resource"),
+		Long:    serviceaccountLong,
+		Example: serviceaccountExample,
 		Run: func(cmd *cobra.Command, args []string) {
 			cmdutil.CheckErr(saConfig.Complete(f, cmd, args))
 			cmdutil.CheckErr(saConfig.Run())

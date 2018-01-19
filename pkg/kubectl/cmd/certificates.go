@@ -32,8 +32,7 @@ import (
 
 func NewCmdCertificate(f cmdutil.Factory, out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
-		Use: "certificate SUBCOMMAND",
-		DisableFlagsInUseLine: true,
+		Use:   "certificate SUBCOMMAND",
 		Short: i18n.T("Modify certificate resources."),
 		Long:  "Modify certificate resources.",
 		Run: func(cmd *cobra.Command, args []string) {
@@ -69,8 +68,7 @@ func (options *CertificateOptions) Validate() error {
 func NewCmdCertificateApprove(f cmdutil.Factory, out io.Writer) *cobra.Command {
 	options := CertificateOptions{}
 	cmd := &cobra.Command{
-		Use: "approve (-f FILENAME | NAME)",
-		DisableFlagsInUseLine: true,
+		Use:   "approve (-f FILENAME | NAME)",
 		Short: i18n.T("Approve a certificate signing request"),
 		Long: templates.LongDesc(`
 		Approve a certificate signing request.
@@ -120,8 +118,7 @@ func (options *CertificateOptions) RunCertificateApprove(f cmdutil.Factory, out 
 func NewCmdCertificateDeny(f cmdutil.Factory, out io.Writer) *cobra.Command {
 	options := CertificateOptions{}
 	cmd := &cobra.Command{
-		Use: "deny (-f FILENAME | NAME)",
-		DisableFlagsInUseLine: true,
+		Use:   "deny (-f FILENAME | NAME)",
 		Short: i18n.T("Deny a certificate signing request"),
 		Long: templates.LongDesc(`
 		Deny a certificate signing request.

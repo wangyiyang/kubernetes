@@ -200,15 +200,13 @@ func volumeSpecToMounter(spec *volume.Spec, host volume.VolumeHost) (*fcDiskMoun
 			volumeMode: volumeMode,
 			readOnly:   readOnly,
 			mounter:    volumehelper.NewSafeFormatAndMountFromHost(fcPluginName, host),
-			deviceUtil: volumeutil.NewDeviceHandler(volumeutil.NewIOHandler()),
 		}, nil
 	}
 	return &fcDiskMounter{
-		fcDisk:     fcDisk,
-		fsType:     fc.FSType,
-		readOnly:   readOnly,
-		mounter:    volumehelper.NewSafeFormatAndMountFromHost(fcPluginName, host),
-		deviceUtil: volumeutil.NewDeviceHandler(volumeutil.NewIOHandler()),
+		fcDisk:   fcDisk,
+		fsType:   fc.FSType,
+		readOnly: readOnly,
+		mounter:  volumehelper.NewSafeFormatAndMountFromHost(fcPluginName, host),
 	}, nil
 }
 
@@ -217,7 +215,6 @@ func volumeSpecToUnmounter(mounter mount.Interface) *fcDiskUnmounter {
 		fcDisk: &fcDisk{
 			io: &osIOHandler{},
 		},
-		mounter:    mounter,
-		deviceUtil: volumeutil.NewDeviceHandler(volumeutil.NewIOHandler()),
+		mounter: mounter,
 	}
 }

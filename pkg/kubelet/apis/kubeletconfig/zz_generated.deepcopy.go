@@ -105,13 +105,23 @@ func (in *KubeletConfiguration) DeepCopyInto(out *KubeletConfiguration) {
 			}
 		}
 	}
-	if in.TLSCipherSuites != nil {
-		in, out := &in.TLSCipherSuites, &out.TLSCipherSuites
+	out.Authentication = in.Authentication
+	out.Authorization = in.Authorization
+	if in.HostNetworkSources != nil {
+		in, out := &in.HostNetworkSources, &out.HostNetworkSources
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
-	out.Authentication = in.Authentication
-	out.Authorization = in.Authorization
+	if in.HostPIDSources != nil {
+		in, out := &in.HostPIDSources, &out.HostPIDSources
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
+	if in.HostIPCSources != nil {
+		in, out := &in.HostIPCSources, &out.HostIPCSources
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	if in.ClusterDNS != nil {
 		in, out := &in.ClusterDNS, &out.ClusterDNS
 		*out = make([]string, len(*in))
