@@ -54,6 +54,7 @@ EOF
 
 function download-kube-env {
   # Fetch kube-env from GCE metadata server.
+<<<<<<< HEAD
   (
     umask 077
     local -r tmp_kube_env="/tmp/kube-env.yaml"
@@ -63,6 +64,16 @@ function download-kube-env {
       http://metadata.google.internal/computeMetadata/v1/instance/attributes/kube-env
     # Convert the yaml format file into a shell-style file.
     eval $(python -c '''
+=======
+  (umask 077;
+  local -r tmp_kube_env="/tmp/kube-env.yaml"
+  curl --fail --retry 5 --retry-delay 3 ${CURL_RETRY_CONNREFUSED} --silent --show-error \
+    -H "X-Google-Metadata-Request: True" \
+    -o "${tmp_kube_env}" \
+    http://metadata.google.internal/computeMetadata/v1/instance/attributes/kube-env
+  # Convert the yaml format file into a shell-style file.
+  eval $(python -c '''
+>>>>>>> c29aa3d25a47eb878f5d25ab158e13d1071dbddc
 import pipes,sys,yaml
 for k,v in yaml.load(sys.stdin).iteritems():
   print("readonly {var}={value}".format(var = k, value = pipes.quote(str(v))))
@@ -93,6 +104,7 @@ function download-kubelet-config {
 
 function download-kube-master-certs {
   # Fetch kube-env from GCE metadata server.
+<<<<<<< HEAD
   (
     umask 077
     local -r tmp_kube_master_certs="/tmp/kube-master-certs.yaml"
@@ -102,6 +114,16 @@ function download-kube-master-certs {
       http://metadata.google.internal/computeMetadata/v1/instance/attributes/kube-master-certs
     # Convert the yaml format file into a shell-style file.
     eval $(python -c '''
+=======
+  (umask 077;
+  local -r tmp_kube_master_certs="/tmp/kube-master-certs.yaml"
+  curl --fail --retry 5 --retry-delay 3 ${CURL_RETRY_CONNREFUSED} --silent --show-error \
+    -H "X-Google-Metadata-Request: True" \
+    -o "${tmp_kube_master_certs}" \
+    http://metadata.google.internal/computeMetadata/v1/instance/attributes/kube-master-certs
+  # Convert the yaml format file into a shell-style file.
+  eval $(python -c '''
+>>>>>>> c29aa3d25a47eb878f5d25ab158e13d1071dbddc
 import pipes,sys,yaml
 for k,v in yaml.load(sys.stdin).iteritems():
   print("readonly {var}={value}".format(var = k, value = pipes.quote(str(v))))

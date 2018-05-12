@@ -1388,6 +1388,7 @@ func TestPodFitsSelector(t *testing.T) {
 			fits: false,
 			test: "Pod with an invalid value in Affinity term won't be scheduled onto the node",
 		},
+<<<<<<< HEAD
 		{
 			pod: &v1.Pod{
 				Spec: v1.PodSpec{
@@ -1580,6 +1581,8 @@ func TestPodFitsSelector(t *testing.T) {
 			fits:     false,
 			test:     "Pod with two terms: both matchFields and matchExpressions do not match",
 		},
+=======
+>>>>>>> c29aa3d25a47eb878f5d25ab158e13d1071dbddc
 	}
 	expectedFailureReasons := []algorithm.PredicateFailureReason{ErrNodeSelectorNotMatch}
 

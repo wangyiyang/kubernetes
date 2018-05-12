@@ -17,11 +17,18 @@ limitations under the License.
 package customresource
 
 import (
+<<<<<<< HEAD
 	"context"
+=======
+>>>>>>> c29aa3d25a47eb878f5d25ab158e13d1071dbddc
 	"reflect"
 	"testing"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+<<<<<<< HEAD
+=======
+	genericapirequest "k8s.io/apiserver/pkg/endpoints/request"
+>>>>>>> c29aa3d25a47eb878f5d25ab158e13d1071dbddc
 )
 
 func TestPrepareForUpdate(t *testing.T) {
@@ -130,7 +137,11 @@ func TestPrepareForUpdate(t *testing.T) {
 		},
 	}
 	for index, tc := range tcs {
+<<<<<<< HEAD
 		strategy.PrepareForUpdate(context.TODO(), tc.obj, tc.old)
+=======
+		strategy.PrepareForUpdate(genericapirequest.NewContext(), tc.obj, tc.old)
+>>>>>>> c29aa3d25a47eb878f5d25ab158e13d1071dbddc
 		if !reflect.DeepEqual(tc.obj, tc.expected) {
 			t.Errorf("test %d failed: expected: %v, got %v", index, tc.expected, tc.obj)
 		}

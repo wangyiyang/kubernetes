@@ -410,7 +410,16 @@ func (o *GetOptions) Run(f cmdutil.Factory, cmd *cobra.Command, args []string) e
 				fmt.Fprintln(o.ErrOut)
 			}
 
+<<<<<<< HEAD:pkg/kubectl/cmd/get/get.go
 			printer, err = o.ToPrinter(mapping, printWithNamespace)
+=======
+			if showKind && mapping != nil {
+				printOpts.WithKind = true
+				printOpts.Kind = mapping.GroupVersionKind.GroupKind()
+			}
+
+			printer, err = cmdutil.PrinterForOptions(printOpts)
+>>>>>>> c29aa3d25a47eb878f5d25ab158e13d1071dbddc:pkg/kubectl/cmd/resource/get.go
 			if err != nil {
 				if !errs.Has(err.Error()) {
 					errs.Insert(err.Error())
@@ -422,6 +431,7 @@ func (o *GetOptions) Run(f cmdutil.Factory, cmd *cobra.Command, args []string) e
 			lastMapping = mapping
 		}
 
+<<<<<<< HEAD:pkg/kubectl/cmd/get/get.go
 		internalObj, err := legacyscheme.Scheme.ConvertToVersion(info.Object, info.Mapping.GroupVersionKind.GroupKind().WithVersion(runtime.APIVersionInternal).GroupVersion())
 		if err != nil {
 			// if there's an error, try to print what you have (mirrors old behavior).
@@ -429,6 +439,34 @@ func (o *GetOptions) Run(f cmdutil.Factory, cmd *cobra.Command, args []string) e
 			printer.PrintObj(info.Object, w)
 		} else {
 			printer.PrintObj(internalObj, w)
+=======
+		typedObj := info.AsInternal()
+
+		// filter objects if filter has been defined for current object
+		if isFiltered, err := filterFuncs.Filter(typedObj, filterOpts); isFiltered {
+			if err == nil {
+				filteredResourceCount++
+				continue
+			}
+			if !errs.Has(err.Error()) {
+				errs.Insert(err.Error())
+				allErrs = append(allErrs, err)
+			}
+		}
+
+		objToPrint := typedObj
+		if printer.IsGeneric() {
+			// use raw object as received from the builder when using generic
+			// printer instead of decodedObj
+			objToPrint = original
+		}
+		if err := printer.PrintObj(objToPrint, w); err != nil {
+			if !errs.Has(err.Error()) {
+				errs.Insert(err.Error())
+				allErrs = append(allErrs, err)
+			}
+			continue
+>>>>>>> c29aa3d25a47eb878f5d25ab158e13d1071dbddc:pkg/kubectl/cmd/resource/get.go
 		}
 	}
 	w.Flush()

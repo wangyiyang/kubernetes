@@ -6607,6 +6607,7 @@ func TestValidatePod(t *testing.T) {
 										{
 											Key:      "invalid key ___@#",
 											Operator: core.NodeSelectorOpExists,
+<<<<<<< HEAD
 										},
 									},
 								},
@@ -6633,6 +6634,8 @@ func TestValidatePod(t *testing.T) {
 											Key:      "metadata.name",
 											Operator: core.NodeSelectorOpIn,
 											Values:   []string{"host1", "host2"},
+=======
+>>>>>>> c29aa3d25a47eb878f5d25ab158e13d1071dbddc
 										},
 									},
 								},
@@ -6642,8 +6645,13 @@ func TestValidatePod(t *testing.T) {
 				}),
 			},
 		},
+<<<<<<< HEAD
 		"invalid node field selector requirement in node affinity, invalid operator": {
 			expectedError: "spec.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchFields[0].operator",
+=======
+		"invalid preferredSchedulingTerm in node affinity, weight should be in range 1-100": {
+			expectedError: "must be in the range 1-100",
+>>>>>>> c29aa3d25a47eb878f5d25ab158e13d1071dbddc
 			spec: core.Pod{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "123",
@@ -6651,6 +6659,7 @@ func TestValidatePod(t *testing.T) {
 				},
 				Spec: validPodSpec(&core.Affinity{
 					NodeAffinity: &core.NodeAffinity{
+<<<<<<< HEAD
 						RequiredDuringSchedulingIgnoredDuringExecution: &core.NodeSelector{
 							NodeSelectorTerms: []core.NodeSelectorTerm{
 								{
@@ -6658,6 +6667,17 @@ func TestValidatePod(t *testing.T) {
 										{
 											Key:      "metadata.name",
 											Operator: core.NodeSelectorOpExists,
+=======
+						PreferredDuringSchedulingIgnoredDuringExecution: []core.PreferredSchedulingTerm{
+							{
+								Weight: 199,
+								Preference: core.NodeSelectorTerm{
+									MatchExpressions: []core.NodeSelectorRequirement{
+										{
+											Key:      "foo",
+											Operator: core.NodeSelectorOpIn,
+											Values:   []string{"bar"},
+>>>>>>> c29aa3d25a47eb878f5d25ab158e13d1071dbddc
 										},
 									},
 								},
@@ -6667,8 +6687,13 @@ func TestValidatePod(t *testing.T) {
 				}),
 			},
 		},
+<<<<<<< HEAD
 		"invalid node field selector requirement in node affinity, invalid key": {
 			expectedError: "spec.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchFields[0].key",
+=======
+		"invalid requiredDuringSchedulingIgnoredDuringExecution node selector, nodeSelectorTerms must have at least one term": {
+			expectedError: "spec.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms",
+>>>>>>> c29aa3d25a47eb878f5d25ab158e13d1071dbddc
 			spec: core.Pod{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "123",
@@ -6677,6 +6702,7 @@ func TestValidatePod(t *testing.T) {
 				Spec: validPodSpec(&core.Affinity{
 					NodeAffinity: &core.NodeAffinity{
 						RequiredDuringSchedulingIgnoredDuringExecution: &core.NodeSelector{
+<<<<<<< HEAD
 							NodeSelectorTerms: []core.NodeSelectorTerm{
 								{
 									MatchFields: []core.NodeSelectorRequirement{
@@ -6715,6 +6741,9 @@ func TestValidatePod(t *testing.T) {
 									},
 								},
 							},
+=======
+							NodeSelectorTerms: []core.NodeSelectorTerm{},
+>>>>>>> c29aa3d25a47eb878f5d25ab158e13d1071dbddc
 						},
 					},
 				}),

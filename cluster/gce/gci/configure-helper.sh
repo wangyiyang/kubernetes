@@ -2197,6 +2197,36 @@ function setup-fluentd {
   update-node-journal ${fluentd_gcp_configmap_yaml}
 }
 
+# Sets up the manifests of Fluentd configmap and yamls for k8s addons.
+function setup-fluentd {
+  local -r dst_dir="$1"
+  local -r fluentd_gcp_yaml="${dst_dir}/fluentd-gcp/fluentd-gcp-ds.yaml"
+  # Ingest logs against new resources like "k8s_container" and "k8s_node" if
+  # LOGGING_STACKDRIVER_RESOURCE_TYPES is "new".
+  # Ingest logs against old resources like "gke_container" and "gce_instance" if
+  # LOGGING_STACKDRIVER_RESOURCE_TYPES is "old".
+  if [[ "${LOGGING_STACKDRIVER_RESOURCE_TYPES:-old}" == "new" ]]; then
+    local -r fluentd_gcp_configmap_yaml="${dst_dir}/fluentd-gcp/fluentd-gcp-configmap.yaml"
+    fluentd_gcp_configmap_name="fluentd-gcp-config"
+  else
+    local -r fluentd_gcp_configmap_yaml="${dst_dir}/fluentd-gcp/fluentd-gcp-configmap-old.yaml"
+    fluentd_gcp_configmap_name="fluentd-gcp-config-old"
+  fi
+  sed -i -e "s@{{ fluentd_gcp_configmap_name }}@${fluentd_gcp_configmap_name}@g" "${fluentd_gcp_yaml}"
+  fluentd_gcp_version="${FLUENTD_GCP_VERSION:-0.2-1.5.30-1-k8s}"
+  sed -i -e "s@{{ fluentd_gcp_version }}@${fluentd_gcp_version}@g" "${fluentd_gcp_yaml}"
+  if [[ "${STACKDRIVER_METADATA_AGENT_URL:-}" != "" ]]; then
+    metadata_agent_url="${STACKDRIVER_METADATA_AGENT_URL}"
+  else
+    metadata_agent_url="http://${HOSTNAME}:8799"
+  fi
+  sed -i -e "s@{{ stackdriver_metadata_agent_url }}@${metadata_agent_url}@g" "${fluentd_gcp_yaml}"
+  update-prometheus-to-sd-parameters ${fluentd_gcp_yaml}
+  start-fluentd-resource-update ${fluentd_gcp_yaml}
+  update-container-runtime ${fluentd_gcp_configmap_yaml}
+  update-node-journal ${fluentd_gcp_configmap_yaml}
+}
+
 # Sets up the manifests of kube-dns for k8s addons.
 function setup-kube-dns-manifest {
   local -r kubedns_file="${dst_dir}/dns/kube-dns.yaml"
@@ -2516,6 +2546,7 @@ EOF
 ########### Main Function ###########
 function main() {
   echo "Start to configure instance for kubernetes"
+<<<<<<< HEAD
 
   KUBE_HOME="/home/kubernetes"
   CONTAINERIZED_MOUNTER_HOME="${KUBE_HOME}/containerized_mounter"
@@ -2579,12 +2610,74 @@ function main() {
   if [[ "${CONTAINER_RUNTIME:-docker}" == "docker" ]]; then
     assemble-docker-flags
   fi
+=======
+
+  KUBE_HOME="/home/kubernetes"
+  CONTAINERIZED_MOUNTER_HOME="${KUBE_HOME}/containerized_mounter"
+  PV_RECYCLER_OVERRIDE_TEMPLATE="${KUBE_HOME}/kube-manifests/kubernetes/pv-recycler-template.yaml"
+
+  if [[ ! -e "${KUBE_HOME}/kube-env" ]]; then
+    echo "The ${KUBE_HOME}/kube-env file does not exist!! Terminate cluster initialization."
+    exit 1
+  fi
+
+  source "${KUBE_HOME}/kube-env"
+
+  if [[ -e "${KUBE_HOME}/kube-master-certs" ]]; then
+    source "${KUBE_HOME}/kube-master-certs"
+  fi
+
+  if [[ -n "${KUBE_USER:-}" ]]; then
+    if ! [[ "${KUBE_USER}" =~ ^[-._@a-zA-Z0-9]+$ ]]; then
+      echo "Bad KUBE_USER format."
+      exit 1
+    fi
+  fi
+
+  # generate the controller manager and scheduler tokens here since they are only used on the master.
+  KUBE_CONTROLLER_MANAGER_TOKEN=$(dd if=/dev/urandom bs=128 count=1 2>/dev/null | base64 | tr -d "=+/" | dd bs=32 count=1 2>/dev/null)
+  KUBE_SCHEDULER_TOKEN=$(dd if=/dev/urandom bs=128 count=1 2>/dev/null | base64 | tr -d "=+/" | dd bs=32 count=1 2>/dev/null)
+
+  setup-os-params
+  config-ip-firewall
+  create-dirs
+  setup-kubelet-dir
+  ensure-local-ssds
+  setup-logrotate
+  if [[ "${KUBERNETES_MASTER:-}" == "true" ]]; then
+    mount-master-pd
+    create-node-pki
+    create-master-pki
+    create-master-auth
+    create-master-kubelet-auth
+    create-master-etcd-auth
+    override-pv-recycler
+  else
+    create-node-pki
+    create-kubelet-kubeconfig ${KUBERNETES_MASTER_NAME}
+    if [[ "${KUBE_PROXY_DAEMONSET:-}" != "true" ]]; then
+      create-kubeproxy-user-kubeconfig
+    fi
+    if [[ "${ENABLE_NODE_PROBLEM_DETECTOR:-}" == "standalone" ]]; then
+      create-node-problem-detector-kubeconfig
+    fi
+  fi
+
+  override-kubectl
+  # Run the containerized mounter once to pre-cache the container image.
+  if [[ "${CONTAINER_RUNTIME:-docker}" == "docker" ]]; then
+    assemble-docker-flags
+  fi
+>>>>>>> c29aa3d25a47eb878f5d25ab158e13d1071dbddc
   start-kubelet
 
   if [[ "${KUBERNETES_MASTER:-}" == "true" ]]; then
     compute-master-manifest-variables
     start-etcd-servers
+<<<<<<< HEAD
     start-etcd-empty-dir-cleanup-pod
+=======
+>>>>>>> c29aa3d25a47eb878f5d25ab158e13d1071dbddc
     start-kube-apiserver
     start-kube-controller-manager
     start-kube-scheduler
@@ -2614,4 +2707,8 @@ if [[ "$#" -eq 1 && "${1}" == "--source-only" ]]; then
    :
 else
    main "${@}"
+<<<<<<< HEAD
 fi
+=======
+fi
+>>>>>>> c29aa3d25a47eb878f5d25ab158e13d1071dbddc

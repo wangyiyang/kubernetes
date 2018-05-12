@@ -347,14 +347,22 @@ func (o *RunOptions) Run(f cmdutil.Factory, cmd *cobra.Command, args []string) e
 	params["env"] = cmdutil.GetFlagStringArray(cmd, "env")
 
 	var createdObjects = []*RunObject{}
+<<<<<<< HEAD
 	runObject, err := o.createGeneratedObject(f, cmd, generator, names, params, cmdutil.GetFlagString(cmd, "overrides"), namespace)
+=======
+	runObject, err := createGeneratedObject(f, cmd, generator, names, params, cmdutil.GetFlagString(cmd, "overrides"), namespace)
+>>>>>>> c29aa3d25a47eb878f5d25ab158e13d1071dbddc
 	if err != nil {
 		return err
 	} else {
 		createdObjects = append(createdObjects, runObject)
 	}
 	allErrs := []error{}
+<<<<<<< HEAD
 	if o.Expose {
+=======
+	if cmdutil.GetFlagBool(cmd, "expose") {
+>>>>>>> c29aa3d25a47eb878f5d25ab158e13d1071dbddc
 		serviceGenerator := cmdutil.GetFlagString(cmd, "service-generator")
 		if len(serviceGenerator) == 0 {
 			return cmdutil.UsageErrorf(cmd, "No service generator specified")
@@ -415,6 +423,40 @@ func (o *RunOptions) Run(f cmdutil.Factory, cmd *cobra.Command, args []string) e
 			}
 		}
 
+<<<<<<< HEAD
+=======
+		if remove {
+			for _, obj := range createdObjects {
+				namespace, err = obj.Mapping.MetadataAccessor.Namespace(obj.Object)
+				if err != nil {
+					return err
+				}
+				var name string
+				name, err = obj.Mapping.MetadataAccessor.Name(obj.Object)
+				if err != nil {
+					return err
+				}
+				r := f.NewBuilder().
+					Internal().
+					ContinueOnError().
+					NamespaceParam(namespace).DefaultNamespace().
+					ResourceNames(obj.Mapping.Resource, name).
+					Flatten().
+					Do()
+				// Note: we pass in "true" for the "quiet" parameter because
+				// ReadResult will only print one thing based on the "quiet"
+				// flag, and that's the "pod xxx deleted" message. If they
+				// asked for us to remove the pod (via --rm) then telling them
+				// its been deleted is unnecessary since that's what they asked
+				// for. We should only print something if the "rm" fails.
+				err = ReapResult(r, f, cmdOut, true, true, 0, -1, false, false, true)
+				if err != nil {
+					return err
+				}
+			}
+		}
+
+>>>>>>> c29aa3d25a47eb878f5d25ab158e13d1071dbddc
 		// after removal is done, return successfully if we are not interested in the exit code
 		if !waitForExitCode {
 			return nil

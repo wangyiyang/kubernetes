@@ -97,12 +97,17 @@ func startTestServer(t *testing.T, stopCh <-chan struct{}, setup TestServerSetup
 	kubeAPIServerOptions.Authentication.RequestHeader.AllowedNames = []string{"kube-aggregator"}
 	kubeAPIServerOptions.Authentication.RequestHeader.ClientCAFile = proxyCACertFile.Name()
 	kubeAPIServerOptions.Authentication.ClientCert.ClientCA = clientCACertFile.Name()
+<<<<<<< HEAD
 	kubeAPIServerOptions.Authorization.Modes = []string{"Node", "RBAC"}
+=======
+	kubeAPIServerOptions.Authorization.Mode = "Node,RBAC"
+>>>>>>> c29aa3d25a47eb878f5d25ab158e13d1071dbddc
 
 	if setup.ModifyServerRunOptions != nil {
 		setup.ModifyServerRunOptions(kubeAPIServerOptions)
 	}
 
+<<<<<<< HEAD
 	completedOptions, err := app.Complete(kubeAPIServerOptions)
 	if err != nil {
 		t.Fatal(err)
@@ -112,6 +117,13 @@ func startTestServer(t *testing.T, stopCh <-chan struct{}, setup TestServerSetup
 		t.Fatal(err)
 	}
 	kubeAPIServerConfig, sharedInformers, versionedInformers, _, _, _, admissionPostStartHook, err := app.CreateKubeAPIServerConfig(completedOptions, tunneler, proxyTransport)
+=======
+	tunneler, proxyTransport, err := app.CreateNodeDialer(kubeAPIServerOptions)
+	if err != nil {
+		t.Fatal(err)
+	}
+	kubeAPIServerConfig, sharedInformers, versionedInformers, _, _, _, err := app.CreateKubeAPIServerConfig(kubeAPIServerOptions, tunneler, proxyTransport)
+>>>>>>> c29aa3d25a47eb878f5d25ab158e13d1071dbddc
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -119,7 +131,11 @@ func startTestServer(t *testing.T, stopCh <-chan struct{}, setup TestServerSetup
 	if setup.ModifyServerConfig != nil {
 		setup.ModifyServerConfig(kubeAPIServerConfig)
 	}
+<<<<<<< HEAD
 	kubeAPIServer, err := app.CreateKubeAPIServer(kubeAPIServerConfig, genericapiserver.NewEmptyDelegate(), sharedInformers, versionedInformers, admissionPostStartHook)
+=======
+	kubeAPIServer, err := app.CreateKubeAPIServer(kubeAPIServerConfig, genericapiserver.EmptyDelegate, sharedInformers, versionedInformers)
+>>>>>>> c29aa3d25a47eb878f5d25ab158e13d1071dbddc
 	if err != nil {
 		t.Fatal(err)
 	}

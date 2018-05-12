@@ -1222,6 +1222,7 @@ func TestBindSubPath(t *testing.T) {
 			},
 			expectError: false,
 		},
+<<<<<<< HEAD
 		{
 			name: "subpath-dir-readonly",
 			prepare: func(base string) ([]string, string, string, error) {
@@ -1271,6 +1272,8 @@ func TestBindSubPath(t *testing.T) {
 			expectError: false,
 			readOnly:    true,
 		},
+=======
+>>>>>>> c29aa3d25a47eb878f5d25ab158e13d1071dbddc
 	}
 
 	for _, test := range tests {

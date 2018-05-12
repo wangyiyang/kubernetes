@@ -100,8 +100,13 @@ func RunPlan(flags *planFlags) error {
 	}
 
 	// Compute which upgrade possibilities there are
+<<<<<<< HEAD
 	glog.V(1).Infof("[upgrade/plan] computing upgrade possibilities")
 	availUpgrades, err := upgrade.GetAvailableUpgrades(upgradeVars.versionGetter, flags.parent.allowExperimentalUpgrades, flags.parent.allowRCUpgrades, etcdClient, upgradeVars.cfg.FeatureGates)
+=======
+	fmt.Println("[upgrade/plan] computing upgrade possibilities")
+	availUpgrades, err := upgrade.GetAvailableUpgrades(upgradeVars.versionGetter, parentFlags.allowExperimentalUpgrades, parentFlags.allowRCUpgrades, etcdClient, upgradeVars.cfg.FeatureGates)
+>>>>>>> c29aa3d25a47eb878f5d25ab158e13d1071dbddc
 	if err != nil {
 		return fmt.Errorf("[upgrade/versions] FATAL: %v", err)
 	}

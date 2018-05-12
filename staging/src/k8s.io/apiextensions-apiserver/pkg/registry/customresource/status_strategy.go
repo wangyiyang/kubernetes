@@ -32,7 +32,11 @@ func NewStatusStrategy(strategy customResourceStrategy) statusStrategy {
 	return statusStrategy{strategy}
 }
 
+<<<<<<< HEAD
 func (a statusStrategy) PrepareForUpdate(ctx context.Context, obj, old runtime.Object) {
+=======
+func (a statusStrategy) PrepareForUpdate(ctx genericapirequest.Context, obj, old runtime.Object) {
+>>>>>>> c29aa3d25a47eb878f5d25ab158e13d1071dbddc
 	// update is only allowed to set status
 	newCustomResourceObject := obj.(*unstructured.Unstructured)
 	newCustomResource := newCustomResourceObject.UnstructuredContent()

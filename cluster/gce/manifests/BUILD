@@ -16,7 +16,10 @@ filegroup(
         "cluster-autoscaler.manifest",
         "e2e-image-puller.manifest",
         "etcd.manifest",
+<<<<<<< HEAD
         "etcd-empty-dir-cleanup.yaml",
+=======
+>>>>>>> c29aa3d25a47eb878f5d25ab158e13d1071dbddc
         "glbc.manifest",
         "kms-plugin-container.manifest",
         "kube-addon-manager.yaml",

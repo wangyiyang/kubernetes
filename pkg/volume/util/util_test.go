@@ -135,9 +135,121 @@ func TestCheckVolumeNodeAffinity(t *testing.T) {
 				},
 			}),
 		},
+<<<<<<< HEAD
 		{
 			name:          "invalid-multiple-match-expressions-key",
 			expectSuccess: false,
+=======
+		{
+			name:          "invalid-multiple-terms",
+			expectSuccess: false,
+			pv: testVolumeWithNodeAffinity(t, &v1.VolumeNodeAffinity{
+				Required: &v1.NodeSelector{
+					NodeSelectorTerms: []v1.NodeSelectorTerm{
+						{
+							MatchExpressions: []v1.NodeSelectorRequirement{
+								{
+									Key:      "test-key3",
+									Operator: v1.NodeSelectorOpIn,
+									Values:   []string{"test-value1", "test-value3"},
+								},
+							},
+						},
+						{
+							MatchExpressions: []v1.NodeSelectorRequirement{
+								{
+									Key:      "test-key2",
+									Operator: v1.NodeSelectorOpIn,
+									Values:   []string{"test-value0", "test-value1"},
+								},
+							},
+						},
+					},
+				},
+			}),
+		},
+	}
+
+	for _, c := range cases {
+		err := CheckNodeAffinity(c.pv, nodeLabels)
+
+		if err != nil && c.expectSuccess {
+			t.Errorf("CheckTopology %v returned error: %v", c.name, err)
+		}
+		if err == nil && !c.expectSuccess {
+			t.Errorf("CheckTopology %v returned success, expected error", c.name)
+		}
+	}
+}
+
+func TestCheckVolumeNodeAffinity(t *testing.T) {
+	type affinityTest struct {
+		name          string
+		expectSuccess bool
+		pv            *v1.PersistentVolume
+	}
+
+	cases := []affinityTest{
+		{
+			name:          "valid-nil",
+			expectSuccess: true,
+			pv:            testVolumeWithNodeAffinity(t, nil),
+		},
+		{
+			name:          "valid-no-constraints",
+			expectSuccess: true,
+			pv:            testVolumeWithNodeAffinity(t, &v1.VolumeNodeAffinity{}),
+		},
+		{
+			name:          "select-nothing",
+			expectSuccess: false,
+			pv:            testVolumeWithNodeAffinity(t, &v1.VolumeNodeAffinity{Required: &v1.NodeSelector{}}),
+		},
+		{
+			name:          "select-nothing-empty-terms",
+			expectSuccess: false,
+			pv: testVolumeWithNodeAffinity(t, &v1.VolumeNodeAffinity{
+				Required: &v1.NodeSelector{
+					NodeSelectorTerms: []v1.NodeSelectorTerm{
+						{
+							MatchExpressions: []v1.NodeSelectorRequirement{},
+						},
+					},
+				},
+			}),
+		},
+		{
+			name:          "valid-multiple-terms",
+			expectSuccess: true,
+			pv: testVolumeWithNodeAffinity(t, &v1.VolumeNodeAffinity{
+				Required: &v1.NodeSelector{
+					NodeSelectorTerms: []v1.NodeSelectorTerm{
+						{
+							MatchExpressions: []v1.NodeSelectorRequirement{
+								{
+									Key:      "test-key3",
+									Operator: v1.NodeSelectorOpIn,
+									Values:   []string{"test-value1", "test-value3"},
+								},
+							},
+						},
+						{
+							MatchExpressions: []v1.NodeSelectorRequirement{
+								{
+									Key:      "test-key2",
+									Operator: v1.NodeSelectorOpIn,
+									Values:   []string{"test-value0", "test-value2"},
+								},
+							},
+						},
+					},
+				},
+			}),
+		},
+		{
+			name:          "valid-multiple-match-expressions",
+			expectSuccess: true,
+>>>>>>> c29aa3d25a47eb878f5d25ab158e13d1071dbddc
 			pv: testVolumeWithNodeAffinity(t, &v1.VolumeNodeAffinity{
 				Required: &v1.NodeSelector{
 					NodeSelectorTerms: []v1.NodeSelectorTerm{
@@ -160,7 +272,11 @@ func TestCheckVolumeNodeAffinity(t *testing.T) {
 			}),
 		},
 		{
+<<<<<<< HEAD
 			name:          "invalid-multiple-match-expressions-values",
+=======
+			name:          "invalid-multiple-match-expressions-key",
+>>>>>>> c29aa3d25a47eb878f5d25ab158e13d1071dbddc
 			expectSuccess: false,
 			pv: testVolumeWithNodeAffinity(t, &v1.VolumeNodeAffinity{
 				Required: &v1.NodeSelector{
@@ -184,7 +300,11 @@ func TestCheckVolumeNodeAffinity(t *testing.T) {
 			}),
 		},
 		{
+<<<<<<< HEAD
 			name:          "invalid-multiple-terms",
+=======
+			name:          "invalid-multiple-match-expressions-values",
+>>>>>>> c29aa3d25a47eb878f5d25ab158e13d1071dbddc
 			expectSuccess: false,
 			pv: testVolumeWithNodeAffinity(t, &v1.VolumeNodeAffinity{
 				Required: &v1.NodeSelector{

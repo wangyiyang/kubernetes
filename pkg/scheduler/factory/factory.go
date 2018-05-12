@@ -299,6 +299,7 @@ func NewConfigFactory(
 	if utilfeature.DefaultFeatureGate.Enabled(features.VolumeScheduling) {
 		// Setup volume binder
 		c.volumeBinder = volumebinder.NewVolumeBinder(client, pvcInformer, pvInformer, storageClassInformer)
+<<<<<<< HEAD
 	}
 
 	// Setup cache comparer
@@ -308,6 +309,8 @@ func NewConfigFactory(
 		pdbLister:  pdbInformer.Lister(),
 		cache:      c.schedulerCache,
 		podQueue:   c.podQueue,
+=======
+>>>>>>> c29aa3d25a47eb878f5d25ab158e13d1071dbddc
 	}
 
 	ch := make(chan os.Signal, 1)

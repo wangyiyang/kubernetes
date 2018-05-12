@@ -733,7 +733,11 @@ func startRealMasterOrDie(t *testing.T, certDir string) (*allClient, clientv3.KV
 		if err != nil {
 			t.Fatal(err)
 		}
+<<<<<<< HEAD
 		kubeAPIServerConfig, sharedInformers, versionedInformers, _, _, _, admissionPostStartHook, err := app.CreateKubeAPIServerConfig(completedOptions, tunneler, proxyTransport)
+=======
+		kubeAPIServerConfig, sharedInformers, versionedInformers, _, _, _, err := app.CreateKubeAPIServerConfig(kubeAPIServerOptions, tunneler, proxyTransport)
+>>>>>>> c29aa3d25a47eb878f5d25ab158e13d1071dbddc
 		if err != nil {
 			t.Fatal(err)
 		}

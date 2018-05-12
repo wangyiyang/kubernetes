@@ -92,5 +92,12 @@ go_test(
     name = "go_default_test",
     srcs = ["status_strategy_test.go"],
     embed = [":go_default_library"],
+<<<<<<< HEAD
     deps = ["//vendor/k8s.io/apimachinery/pkg/apis/meta/v1/unstructured:go_default_library"],
+=======
+    deps = [
+        "//vendor/k8s.io/apimachinery/pkg/apis/meta/v1/unstructured:go_default_library",
+        "//vendor/k8s.io/apiserver/pkg/endpoints/request:go_default_library",
+    ],
+>>>>>>> c29aa3d25a47eb878f5d25ab158e13d1071dbddc
 )

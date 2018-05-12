@@ -270,6 +270,36 @@ func CheckNodeAffinity(pv *v1.PersistentVolume, nodeLabels map[string]string) er
 	return checkVolumeNodeAffinity(pv, nodeLabels)
 }
 
+<<<<<<< HEAD
+=======
+func checkAlphaNodeAffinity(pv *v1.PersistentVolume, nodeLabels map[string]string) error {
+	affinity, err := v1helper.GetStorageNodeAffinityFromAnnotation(pv.Annotations)
+	if err != nil {
+		return fmt.Errorf("Error getting storage node affinity: %v", err)
+	}
+	if affinity == nil {
+		return nil
+	}
+
+	if affinity.RequiredDuringSchedulingIgnoredDuringExecution != nil {
+		terms := affinity.RequiredDuringSchedulingIgnoredDuringExecution.NodeSelectorTerms
+		glog.V(10).Infof("Match for RequiredDuringSchedulingIgnoredDuringExecution node selector terms %+v", terms)
+		for _, term := range terms {
+			selector, err := v1helper.NodeSelectorRequirementsAsSelector(term.MatchExpressions)
+			if err != nil {
+				return fmt.Errorf("Failed to parse MatchExpressions: %v", err)
+			}
+			if selector.Matches(labels.Set(nodeLabels)) {
+				// Terms are ORed, so only one needs to match
+				return nil
+			}
+		}
+		return fmt.Errorf("No matching NodeSelectorTerms")
+	}
+	return nil
+}
+
+>>>>>>> c29aa3d25a47eb878f5d25ab158e13d1071dbddc
 func checkVolumeNodeAffinity(pv *v1.PersistentVolume, nodeLabels map[string]string) error {
 	if pv.Spec.NodeAffinity == nil {
 		return nil

@@ -63,7 +63,11 @@ var initVolSources = map[string]func() volSource{
 	"hostPath":         initHostpath,
 	"hostPathSymlink":  initHostpathSymlink,
 	"emptyDir":         initEmptydir,
+<<<<<<< HEAD
 	"gcePDPVC":         initGCEPDPVC,
+=======
+	"gcePDPVC":         initGCEPD,
+>>>>>>> c29aa3d25a47eb878f5d25ab158e13d1071dbddc
 	"gcePDPartitioned": initGCEPDPartition,
 	"nfs":              initNFS,
 	"nfsPVC":           initNFSPVC,
@@ -251,6 +255,7 @@ var _ = utils.SIGDescribe("Subpath", func() {
 			It("should support restarting containers using directory as subpath [Slow]", func() {
 				// Create the directory
 				setInitCommand(pod, fmt.Sprintf("mkdir -p %v; touch %v", subPathDir, probeFilePath))
+<<<<<<< HEAD
 
 				testPodContainerRestart(f, pod)
 			})
@@ -311,6 +316,28 @@ var _ = utils.SIGDescribe("Subpath", func() {
 
 				// Read it from inside the subPath from container 0
 				testReadFile(f, filePathInSubpath, pod, 0)
+=======
+
+				testPodContainerRestart(f, pod)
+			})
+
+			It("should support restarting containers using file as subpath [Slow]", func() {
+				// Create the file
+				setInitCommand(pod, fmt.Sprintf("touch %v; touch %v", subPathDir, probeFilePath))
+
+				testPodContainerRestart(f, pod)
+			})
+
+			It("should unmount if pod is gracefully deleted while kubelet is down [Disruptive][Slow]", func() {
+				testSubpathReconstruction(f, pod, false)
+			})
+
+			It("should unmount if pod is force deleted while kubelet is down [Disruptive][Slow]", func() {
+				if curVolType == "hostPath" || curVolType == "hostPathSymlink" {
+					framework.Skipf("%s volume type does not support reconstruction, skipping", curVolType)
+				}
+				testSubpathReconstruction(f, pod, true)
+>>>>>>> c29aa3d25a47eb878f5d25ab158e13d1071dbddc
 			})
 		})
 	}
@@ -591,8 +618,11 @@ func testPodContainerRestart(f *framework.Framework, pod *v1.Pod) {
 }
 
 func testSubpathReconstruction(f *framework.Framework, pod *v1.Pod, forceDelete bool) {
+<<<<<<< HEAD
 	// This is mostly copied from TestVolumeUnmountsFromDeletedPodWithForceOption()
 
+=======
+>>>>>>> c29aa3d25a47eb878f5d25ab158e13d1071dbddc
 	// Change to busybox
 	pod.Spec.Containers[0].Image = "busybox"
 	pod.Spec.Containers[0].Command = []string{"/bin/sh", "-ec", "sleep 100000"}
@@ -614,6 +644,7 @@ func testSubpathReconstruction(f *framework.Framework, pod *v1.Pod, forceDelete 
 	pod, err = f.ClientSet.CoreV1().Pods(f.Namespace.Name).Get(pod.Name, metav1.GetOptions{})
 	Expect(err).ToNot(HaveOccurred(), "while getting pod")
 
+<<<<<<< HEAD
 	utils.TestVolumeUnmountsFromDeletedPodWithForceOption(f.ClientSet, f, pod, forceDelete, true)
 }
 
@@ -632,6 +663,9 @@ func initVolumeContent(f *framework.Framework, pod *v1.Pod, volumeFilepath, subp
 
 	// This pod spec is going to be reused; reset all the commands
 	clearSubpathPodCommands(pod)
+=======
+	utils.TestVolumeUnmountsFromDeletedPodWithForceOption(f.ClientSet, f, pod, forceDelete, true /* checkSubpath */)
+>>>>>>> c29aa3d25a47eb878f5d25ab158e13d1071dbddc
 }
 
 func podContainerExec(pod *v1.Pod, containerIndex int, bashExec string) (string, error) {

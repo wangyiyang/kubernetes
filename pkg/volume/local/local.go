@@ -19,9 +19,14 @@ package local
 import (
 	"fmt"
 	"os"
+<<<<<<< HEAD
 	"path/filepath"
 	"runtime"
 	"strings"
+=======
+	"path"
+	"runtime"
+>>>>>>> c29aa3d25a47eb878f5d25ab158e13d1071dbddc
 
 	"github.com/golang/glog"
 

@@ -158,13 +158,21 @@ func CreateServerChain(completedOptions completedServerRunOptions, stopCh <-chan
 		return nil, err
 	}
 
+<<<<<<< HEAD
 	kubeAPIServerConfig, sharedInformers, versionedInformers, insecureServingOptions, serviceResolver, pluginInitializer, admissionPostStartHook, err := CreateKubeAPIServerConfig(completedOptions, nodeTunneler, proxyTransport)
+=======
+	kubeAPIServerConfig, sharedInformers, versionedInformers, insecureServingOptions, serviceResolver, pluginInitializer, err := CreateKubeAPIServerConfig(runOptions, nodeTunneler, proxyTransport)
+>>>>>>> c29aa3d25a47eb878f5d25ab158e13d1071dbddc
 	if err != nil {
 		return nil, err
 	}
 
 	// If additional API servers are added, they should be gated.
+<<<<<<< HEAD
 	apiExtensionsConfig, err := createAPIExtensionsConfig(*kubeAPIServerConfig.GenericConfig, versionedInformers, pluginInitializer, completedOptions.ServerRunOptions)
+=======
+	apiExtensionsConfig, err := createAPIExtensionsConfig(*kubeAPIServerConfig.GenericConfig, versionedInformers, pluginInitializer, runOptions)
+>>>>>>> c29aa3d25a47eb878f5d25ab158e13d1071dbddc
 	if err != nil {
 		return nil, err
 	}
@@ -186,7 +194,11 @@ func CreateServerChain(completedOptions completedServerRunOptions, stopCh <-chan
 	apiExtensionsServer.GenericAPIServer.PrepareRun()
 
 	// aggregator comes last in the chain
+<<<<<<< HEAD
 	aggregatorConfig, err := createAggregatorConfig(*kubeAPIServerConfig.GenericConfig, completedOptions.ServerRunOptions, versionedInformers, serviceResolver, proxyTransport, pluginInitializer)
+=======
+	aggregatorConfig, err := createAggregatorConfig(*kubeAPIServerConfig.GenericConfig, runOptions, versionedInformers, serviceResolver, proxyTransport, pluginInitializer)
+>>>>>>> c29aa3d25a47eb878f5d25ab158e13d1071dbddc
 	if err != nil {
 		return nil, err
 	}
@@ -269,7 +281,11 @@ func CreateNodeDialer(s completedServerRunOptions) (tunneler.Tunneler, *http.Tra
 
 // CreateKubeAPIServerConfig creates all the resources for running the API server, but runs none of them
 func CreateKubeAPIServerConfig(
+<<<<<<< HEAD
 	s completedServerRunOptions,
+=======
+	s *options.ServerRunOptions,
+>>>>>>> c29aa3d25a47eb878f5d25ab158e13d1071dbddc
 	nodeTunneler tunneler.Tunneler,
 	proxyTransport *http.Transport,
 ) (
@@ -279,11 +295,29 @@ func CreateKubeAPIServerConfig(
 	insecureServingInfo *kubeserver.InsecureServingInfo,
 	serviceResolver aggregatorapiserver.ServiceResolver,
 	pluginInitializers []admission.PluginInitializer,
+<<<<<<< HEAD
 	admissionPostStartHook genericapiserver.PostStartHookFunc,
 	lastErr error,
 ) {
 	var genericConfig *genericapiserver.Config
 	genericConfig, sharedInformers, versionedInformers, insecureServingInfo, serviceResolver, pluginInitializers, admissionPostStartHook, lastErr = BuildGenericConfig(s.ServerRunOptions, proxyTransport)
+=======
+	lastErr error,
+) {
+	// set defaults in the options before trying to create the generic config
+	if lastErr = defaultOptions(s); lastErr != nil {
+		return
+	}
+
+	// validate options
+	if errs := s.Validate(); len(errs) != 0 {
+		lastErr = utilerrors.NewAggregate(errs)
+		return
+	}
+
+	var genericConfig *genericapiserver.Config
+	genericConfig, sharedInformers, versionedInformers, insecureServingInfo, serviceResolver, pluginInitializers, lastErr = BuildGenericConfig(s, proxyTransport)
+>>>>>>> c29aa3d25a47eb878f5d25ab158e13d1071dbddc
 	if lastErr != nil {
 		return
 	}
@@ -311,7 +345,11 @@ func CreateKubeAPIServerConfig(
 		return
 	}
 
+<<<<<<< HEAD
 	storageFactory, lastErr := BuildStorageFactory(s.ServerRunOptions, genericConfig.MergedResourceConfig)
+=======
+	storageFactory, lastErr := BuildStorageFactory(s, genericConfig.MergedResourceConfig)
+>>>>>>> c29aa3d25a47eb878f5d25ab158e13d1071dbddc
 	if lastErr != nil {
 		return
 	}
@@ -331,7 +369,11 @@ func CreateKubeAPIServerConfig(
 		s.Authentication.ServiceAccounts.Issuer != "" ||
 		len(s.Authentication.ServiceAccounts.APIAudiences) > 0 {
 		if !utilfeature.DefaultFeatureGate.Enabled(features.TokenRequest) {
+<<<<<<< HEAD
 			lastErr = fmt.Errorf("the TokenRequest feature is not enabled but --service-account-signing-key-file, --service-account-issuer and/or --service-account-api-audiences flags were passed")
+=======
+			lastErr = fmt.Errorf("the TokenRequest feature is not enabled but --service-account-signing-key-file and/or --service-account-issuer-id flags were passed")
+>>>>>>> c29aa3d25a47eb878f5d25ab158e13d1071dbddc
 			return
 		}
 		if s.ServiceAccountSigningKeyFile == "" ||
@@ -405,7 +447,10 @@ func BuildGenericConfig(
 	insecureServingInfo *kubeserver.InsecureServingInfo,
 	serviceResolver aggregatorapiserver.ServiceResolver,
 	pluginInitializers []admission.PluginInitializer,
+<<<<<<< HEAD
 	admissionPostStartHook genericapiserver.PostStartHookFunc,
+=======
+>>>>>>> c29aa3d25a47eb878f5d25ab158e13d1071dbddc
 	lastErr error,
 ) {
 	genericConfig = genericapiserver.NewConfig(legacyscheme.Codecs)
@@ -428,7 +473,11 @@ func BuildGenericConfig(
 	if lastErr = s.Features.ApplyTo(genericConfig); lastErr != nil {
 		return
 	}
+<<<<<<< HEAD
 	if lastErr = s.APIEnablement.ApplyTo(genericConfig, master.DefaultAPIResourceConfigSource(), legacyscheme.Scheme); lastErr != nil {
+=======
+	if lastErr = s.APIEnablement.ApplyTo(genericConfig, master.DefaultAPIResourceConfigSource(), legacyscheme.Registry); lastErr != nil {
+>>>>>>> c29aa3d25a47eb878f5d25ab158e13d1071dbddc
 		return
 	}
 
@@ -460,8 +509,22 @@ func BuildGenericConfig(
 
 	client, err := internalclientset.NewForConfig(genericConfig.LoopbackClientConfig)
 	if err != nil {
+<<<<<<< HEAD
 		lastErr = fmt.Errorf("failed to create clientset: %v", err)
 		return
+=======
+		kubeAPIVersions := os.Getenv("KUBE_API_VERSIONS")
+		if len(kubeAPIVersions) == 0 {
+			lastErr = fmt.Errorf("failed to create clientset: %v", err)
+			return
+		}
+
+		// KUBE_API_VERSIONS is used in test-update-storage-objects.sh, disabling a number of API
+		// groups. This leads to a nil client above and undefined behaviour further down.
+		//
+		// TODO: get rid of KUBE_API_VERSIONS or define sane behaviour if set
+		glog.Errorf("Failed to create clientset with KUBE_API_VERSIONS=%q. KUBE_API_VERSIONS is only for testing. Things will break.", kubeAPIVersions)
+>>>>>>> c29aa3d25a47eb878f5d25ab158e13d1071dbddc
 	}
 
 	kubeClientConfig := genericConfig.LoopbackClientConfig
@@ -529,7 +592,11 @@ func BuildGenericConfig(
 			},
 		}
 	}
+<<<<<<< HEAD
 	pluginInitializers, admissionPostStartHook, err = BuildAdmissionPluginInitializers(
+=======
+	pluginInitializers, err = BuildAdmissionPluginInitializers(
+>>>>>>> c29aa3d25a47eb878f5d25ab158e13d1071dbddc
 		s,
 		client,
 		sharedInformers,
@@ -561,7 +628,11 @@ func BuildAdmissionPluginInitializers(
 	sharedInformers informers.SharedInformerFactory,
 	serviceResolver aggregatorapiserver.ServiceResolver,
 	webhookAuthWrapper webhookconfig.AuthenticationInfoResolverWrapper,
+<<<<<<< HEAD
 ) ([]admission.PluginInitializer, genericapiserver.PostStartHookFunc, error) {
+=======
+) ([]admission.PluginInitializer, error) {
+>>>>>>> c29aa3d25a47eb878f5d25ab158e13d1071dbddc
 	var cloudConfig []byte
 
 	if s.CloudProvider.CloudConfigFile != "" {

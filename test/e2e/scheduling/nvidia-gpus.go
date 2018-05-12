@@ -124,7 +124,18 @@ func SetupNVIDIAGPUNode(f *framework.Framework, setupResourceGatherer bool) *fra
 	if dsYamlUrlFromEnv != "" {
 		dsYamlUrl = dsYamlUrlFromEnv
 	} else {
+<<<<<<< HEAD
 		dsYamlUrl = "https://raw.githubusercontent.com/GoogleCloudPlatform/container-engine-accelerators/master/daemonset.yaml"
+=======
+		dsYamlUrlFromEnv := os.Getenv("NVIDIA_DRIVER_INSTALLER_DAEMONSET")
+		if dsYamlUrlFromEnv != "" {
+			dsYamlUrl = dsYamlUrlFromEnv
+		} else {
+			dsYamlUrl = "https://raw.githubusercontent.com/GoogleCloudPlatform/container-engine-accelerators/k8s-1.10/daemonset.yaml"
+		}
+		gpuResourceName = framework.NVIDIAGPUResourceName
+		podCreationFunc = makeCudaAdditionDevicePluginTestPod
+>>>>>>> c29aa3d25a47eb878f5d25ab158e13d1071dbddc
 	}
 	gpuResourceName = framework.NVIDIAGPUResourceName
 
