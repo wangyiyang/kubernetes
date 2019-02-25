@@ -14,7 +14,11 @@
 		"github.com/onsi/ginkgo/ginkgo",
 		"golang.org/x/lint/golint",
 		"k8s.io/kube-openapi/cmd/openapi-gen",
+<<<<<<< HEAD
 		"k8s.io/repo-infra/kazel",
+=======
+		"golang.org/x/lint/golint",
+>>>>>>> ff6a78dd494a7f03c4f9585b419a1d42b891c7f5
 		"./..."
 	],
 	"Deps": [
@@ -3800,6 +3804,14 @@
 		{
 			"ImportPath": "golang.org/x/tools/go/packages",
 			"Rev": "7f7074d5bcfd282eb16bc382b0bb3da762461985"
+		},
+		{
+			"ImportPath": "golang.org/x/tools/go/gcexportdata",
+			"Rev": "2382e3994d48b1d22acc2c86bcad0a2aff028e32"
+		},
+		{
+			"ImportPath": "golang.org/x/tools/go/gcimporter15",
+			"Rev": "2382e3994d48b1d22acc2c86bcad0a2aff028e32"
 		},
 		{
 			"ImportPath": "golang.org/x/tools/go/vcs",

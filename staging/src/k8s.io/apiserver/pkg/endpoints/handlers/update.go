@@ -64,12 +64,15 @@ func UpdateResource(r rest.Updater, scope RequestScope, admit admission.Interfac
 		ctx := req.Context()
 		ctx = request.WithNamespace(ctx, namespace)
 
+<<<<<<< HEAD
 		outputMediaType, _, err := negotiation.NegotiateOutputMediaType(req, scope.Serializer, &scope)
 		if err != nil {
 			scope.err(err, w, req)
 			return
 		}
 
+=======
+>>>>>>> ff6a78dd494a7f03c4f9585b419a1d42b891c7f5
 		body, err := limitedReadBody(req, scope.MaxRequestBodyBytes)
 		if err != nil {
 			scope.err(err, w, req)

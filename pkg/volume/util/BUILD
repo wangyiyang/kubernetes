@@ -58,6 +58,11 @@ go_test(
     deps = [
         "//pkg/apis/core/install:go_default_library",
         "//pkg/apis/core/v1/helper:go_default_library",
+<<<<<<< HEAD
+=======
+        "//pkg/features:go_default_library",
+        "//pkg/kubelet/apis:go_default_library",
+>>>>>>> ff6a78dd494a7f03c4f9585b419a1d42b891c7f5
         "//pkg/util/slice:go_default_library",
         "//pkg/volume:go_default_library",
         "//staging/src/k8s.io/api/core/v1:go_default_library",
@@ -65,6 +70,11 @@ go_test(
         "//staging/src/k8s.io/apimachinery/pkg/apis/meta/v1:go_default_library",
         "//staging/src/k8s.io/apimachinery/pkg/types:go_default_library",
         "//staging/src/k8s.io/apimachinery/pkg/util/sets:go_default_library",
+<<<<<<< HEAD
+=======
+        "//staging/src/k8s.io/apiserver/pkg/util/feature:go_default_library",
+        "//staging/src/k8s.io/apiserver/pkg/util/feature/testing:go_default_library",
+>>>>>>> ff6a78dd494a7f03c4f9585b419a1d42b891c7f5
     ] + select({
         "@io_bazel_rules_go//go/platform:linux": [
             "//staging/src/k8s.io/client-go/util/testing:go_default_library",

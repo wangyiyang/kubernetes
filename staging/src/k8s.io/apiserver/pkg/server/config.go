@@ -29,6 +29,10 @@ import (
 	"sync/atomic"
 	"time"
 
+<<<<<<< HEAD
+=======
+	"github.com/emicklei/go-restful-swagger12"
+>>>>>>> ff6a78dd494a7f03c4f9585b419a1d42b891c7f5
 	jsonpatch "github.com/evanphx/json-patch"
 	"github.com/go-openapi/spec"
 	"github.com/pborman/uuid"

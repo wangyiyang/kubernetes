@@ -108,6 +108,10 @@ go_library(
         "//staging/src/k8s.io/component-base/logs:go_default_library",
         "//vendor/github.com/coreos/go-systemd/daemon:go_default_library",
         "//vendor/github.com/emicklei/go-restful:go_default_library",
+<<<<<<< HEAD
+=======
+        "//vendor/github.com/emicklei/go-restful-swagger12:go_default_library",
+>>>>>>> ff6a78dd494a7f03c4f9585b419a1d42b891c7f5
         "//vendor/github.com/evanphx/json-patch:go_default_library",
         "//vendor/github.com/go-openapi/spec:go_default_library",
         "//vendor/github.com/pborman/uuid:go_default_library",

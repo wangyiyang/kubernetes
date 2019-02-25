@@ -514,6 +514,7 @@ func (og *operationGenerator) GenerateMountVolumeFunc(
 	}
 
 	mountVolumeFunc := func() (error, error) {
+<<<<<<< HEAD
 		originalSpec := volumeToMount.VolumeSpec
 		// Get mounter plugin
 		if useCSIPlugin(og.volumePluginMgr, volumeToMount.VolumeSpec) {
@@ -549,6 +550,32 @@ func (og *operationGenerator) GenerateMountVolumeFunc(
 			return volumeToMount.GenerateError("MountVolume.MountOptionSupport check failed", mountCheckError)
 		}
 
+=======
+		if err != nil || volumePlugin == nil {
+			return volumeToMount.GenerateError("MountVolume.FindPluginBySpec failed", err)
+		}
+
+		affinityErr := checkNodeAffinity(og, volumeToMount, volumePlugin)
+		if affinityErr != nil {
+			return volumeToMount.GenerateError("MountVolume.NodeAffinity check failed", affinityErr)
+		}
+
+		volumeMounter, newMounterErr := volumePlugin.NewMounter(
+			volumeToMount.VolumeSpec,
+			volumeToMount.Pod,
+			volume.VolumeOptions{})
+		if newMounterErr != nil {
+			return volumeToMount.GenerateError("MountVolume.NewMounter initialization failed", newMounterErr)
+
+		}
+
+		mountCheckError := checkMountOptionSupport(og, volumeToMount, volumePlugin)
+
+		if mountCheckError != nil {
+			return volumeToMount.GenerateError("MountVolume.MountOptionSupport check failed", mountCheckError)
+		}
+
+>>>>>>> ff6a78dd494a7f03c4f9585b419a1d42b891c7f5
 		// Get attacher, if possible
 		attachableVolumePlugin, _ :=
 			og.volumePluginMgr.FindAttachablePluginBySpec(volumeToMount.VolumeSpec)

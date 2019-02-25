@@ -62,6 +62,7 @@ func (t *volumeModeTestSuite) getTestSuiteInfo() TestSuiteInfo {
 	return t.tsInfo
 }
 
+<<<<<<< HEAD
 func (t *volumeModeTestSuite) defineTests(driver TestDriver, pattern testpatterns.TestPattern) {
 	type local struct {
 		config      *PerTestConfig
@@ -73,13 +74,40 @@ func (t *volumeModeTestSuite) defineTests(driver TestDriver, pattern testpattern
 		pvc    *v1.PersistentVolumeClaim
 		pv     *v1.PersistentVolume
 		volume TestVolume
+=======
+func (t *volumeModeTestSuite) skipUnsupportedTest(pattern testpatterns.TestPattern, driver drivers.TestDriver) {
+}
+
+func createVolumeModeTestInput(pattern testpatterns.TestPattern, resource volumeModeTestResource) volumeModeTestInput {
+	driver := resource.driver
+	dInfo := driver.GetDriverInfo()
+	f := dInfo.Framework
+
+	return volumeModeTestInput{
+		f:                f,
+		sc:               resource.sc,
+		pvc:              resource.pvc,
+		pv:               resource.pv,
+		testVolType:      pattern.VolType,
+		nodeName:         dInfo.Config.ClientNodeName,
+		volMode:          pattern.VolMode,
+		isBlockSupported: dInfo.Capabilities[drivers.CapBlock],
+>>>>>>> ff6a78dd494a7f03c4f9585b419a1d42b891c7f5
 	}
 	var (
 		dInfo = driver.GetDriverInfo()
 		l     local
 	)
 
+<<<<<<< HEAD
 	// No preconditions to test. Normally they would be in a BeforeEach here.
+=======
+func getVolumeModeTestFunc(pattern testpatterns.TestPattern, driver drivers.TestDriver) func(*volumeModeTestInput) {
+	dInfo := driver.GetDriverInfo()
+	isBlockSupported := dInfo.Capabilities[drivers.CapBlock]
+	volMode := pattern.VolMode
+	volType := pattern.VolType
+>>>>>>> ff6a78dd494a7f03c4f9585b419a1d42b891c7f5
 
 	// This intentionally comes after checking the preconditions because it
 	// registers its own BeforeEach which creates the namespace. Beware that it

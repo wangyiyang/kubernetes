@@ -571,10 +571,13 @@ func (f *FakeBasicVolumePlugin) CanSupport(spec *Spec) bool {
 	return strings.HasPrefix(spec.Name(), f.GetPluginName())
 }
 
+<<<<<<< HEAD
 func (plugin *FakeBasicVolumePlugin) IsMigratedToCSI() bool {
 	return false
 }
 
+=======
+>>>>>>> ff6a78dd494a7f03c4f9585b419a1d42b891c7f5
 func (f *FakeBasicVolumePlugin) ConstructVolumeSpec(ame, mountPath string) (*Spec, error) {
 	return f.Plugin.ConstructVolumeSpec(ame, mountPath)
 }
@@ -638,10 +641,13 @@ func (f *FakeAttachableVolumePlugin) NewDetacher() (Detacher, error) {
 	return f.Plugin.NewDetacher()
 }
 
+<<<<<<< HEAD
 func (f *FakeAttachableVolumePlugin) CanAttach(spec *Spec) bool {
 	return true
 }
 
+=======
+>>>>>>> ff6a78dd494a7f03c4f9585b419a1d42b891c7f5
 var _ VolumePlugin = &FakeAttachableVolumePlugin{}
 var _ AttachableVolumePlugin = &FakeAttachableVolumePlugin{}
 

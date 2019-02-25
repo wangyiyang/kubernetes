@@ -25,7 +25,7 @@ import (
 	cadvisorapiv1 "github.com/google/cadvisor/info/v1"
 	"k8s.io/klog"
 
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/kubernetes/pkg/kubelet/cm"
 	"k8s.io/kubernetes/pkg/kubelet/config"
@@ -327,7 +327,11 @@ func (kl *Kubelet) getMountedVolumePathListFromDisk(podUID types.UID) ([]string,
 func (kl *Kubelet) podVolumeSubpathsDirExists(podUID types.UID) (bool, error) {
 	podVolDir := kl.getPodVolumeSubpathsDir(podUID)
 
+<<<<<<< HEAD
 	if pathExists, pathErr := mount.PathExists(podVolDir); pathErr != nil {
+=======
+	if pathExists, pathErr := volumeutil.PathExists(podVolDir); pathErr != nil {
+>>>>>>> ff6a78dd494a7f03c4f9585b419a1d42b891c7f5
 		return true, fmt.Errorf("Error checking if path %q exists: %v", podVolDir, pathErr)
 	} else if !pathExists {
 		return false, nil

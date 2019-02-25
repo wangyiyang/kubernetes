@@ -79,7 +79,13 @@ func (t *volumeIOTestSuite) defineTests(driver TestDriver, pattern testpatterns.
 		config      *PerTestConfig
 		testCleanup func()
 
+<<<<<<< HEAD
 		resource *genericVolumeTestResource
+=======
+	if dInfo.Capabilities[drivers.CapFsGroup] {
+		fsGroupVal := int64(1234)
+		fsGroup = &fsGroupVal
+>>>>>>> ff6a78dd494a7f03c4f9585b419a1d42b891c7f5
 	}
 	var (
 		dInfo = driver.GetDriverInfo()

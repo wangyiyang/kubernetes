@@ -54,6 +54,11 @@ const (
 	maxJSONPatchOperations = 10000
 )
 
+const (
+	// maximum number of operations a single json patch may contain.
+	maxJSONPatchOperations = 10000
+)
+
 // PatchResource returns a function that will handle a resource patch.
 func PatchResource(r rest.Patcher, scope RequestScope, admit admission.Interface, patchTypes []string) http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
@@ -95,6 +100,7 @@ func PatchResource(r rest.Patcher, scope RequestScope, admit admission.Interface
 		ctx := req.Context()
 		ctx = request.WithNamespace(ctx, namespace)
 
+<<<<<<< HEAD
 		outputMediaType, _, err := negotiation.NegotiateOutputMediaType(req, scope.Serializer, &scope)
 		if err != nil {
 			scope.err(err, w, req)
@@ -102,6 +108,9 @@ func PatchResource(r rest.Patcher, scope RequestScope, admit admission.Interface
 		}
 
 		patchBytes, err := limitedReadBody(req, scope.MaxRequestBodyBytes)
+=======
+		patchJS, err := limitedReadBody(req, scope.MaxRequestBodyBytes)
+>>>>>>> ff6a78dd494a7f03c4f9585b419a1d42b891c7f5
 		if err != nil {
 			scope.err(err, w, req)
 			return

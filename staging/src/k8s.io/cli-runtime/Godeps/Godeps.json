@@ -29,6 +29,7 @@
 		{
 			"ImportPath": "github.com/evanphx/json-patch",
 			"Rev": "5858425f75500d40c52783dce87d085a483ce135"
+<<<<<<< HEAD
 		},
 		{
 			"ImportPath": "github.com/ghodss/yaml",
@@ -49,6 +50,8 @@
 		{
 			"ImportPath": "github.com/go-openapi/swag",
 			"Rev": "5899d5c5e619fda5fa86e14795a835f473ca284c"
+=======
+>>>>>>> ff6a78dd494a7f03c4f9585b419a1d42b891c7f5
 		},
 		{
 			"ImportPath": "github.com/gogo/protobuf/proto",

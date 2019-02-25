@@ -421,6 +421,31 @@ func (s *subPathTestSuite) defineTests(driver TestDriver, pattern testpatterns.T
 		// Delete pod (from defer) and wait for it to be successfully deleted
 	})
 
+	It("should be able to unmount after the subpath directory is deleted", func() {
+		// Change volume container to busybox so we can exec later
+		input.pod.Spec.Containers[1].Image = imageutils.GetE2EImage(imageutils.BusyBox)
+		input.pod.Spec.Containers[1].Command = []string{"/bin/sh", "-ec", "sleep 100000"}
+
+		By(fmt.Sprintf("Creating pod %s", input.pod.Name))
+		pod, err := input.f.ClientSet.CoreV1().Pods(input.f.Namespace.Name).Create(input.pod)
+		Expect(err).ToNot(HaveOccurred(), "while creating pod")
+		defer func() {
+			By(fmt.Sprintf("Deleting pod %s", pod.Name))
+			framework.DeletePodWithWait(input.f, input.f.ClientSet, pod)
+		}()
+
+		// Wait for pod to be running
+		err = framework.WaitForPodRunningInNamespace(input.f.ClientSet, pod)
+		Expect(err).ToNot(HaveOccurred(), "while waiting for pod to be running")
+
+		// Exec into container that mounted the volume, delete subpath directory
+		rmCmd := fmt.Sprintf("rm -rf %s", input.subPathDir)
+		_, err = podContainerExec(pod, 1, rmCmd)
+		Expect(err).ToNot(HaveOccurred(), "while removing subpath directory")
+
+		// Delete pod (from defer) and wait for it to be successfully deleted
+	})
+
 	// TODO: add a test case for the same disk with two partitions
 }
 
@@ -715,7 +740,11 @@ func testPodFailSubpathError(f *framework.Framework, pod *v1.Pod, errorMsg strin
 		framework.DeletePodWithWait(f, f.ClientSet, pod)
 	}()
 	By("Checking for subpath error in container status")
+<<<<<<< HEAD
 	err = waitForPodSubpathError(f, pod, allowContainerTerminationError)
+=======
+	err = waitForPodSubpathError(f, pod)
+>>>>>>> ff6a78dd494a7f03c4f9585b419a1d42b891c7f5
 	Expect(err).NotTo(HaveOccurred(), "while waiting for subpath failure")
 }
 
@@ -730,7 +759,11 @@ func findSubpathContainerName(pod *v1.Pod) string {
 	return ""
 }
 
+<<<<<<< HEAD
 func waitForPodSubpathError(f *framework.Framework, pod *v1.Pod, allowContainerTerminationError bool) error {
+=======
+func waitForPodSubpathError(f *framework.Framework, pod *v1.Pod) error {
+>>>>>>> ff6a78dd494a7f03c4f9585b419a1d42b891c7f5
 	subpathContainerName := findSubpathContainerName(pod)
 	if subpathContainerName == "" {
 		return fmt.Errorf("failed to find container that uses subpath")
@@ -748,9 +781,12 @@ func waitForPodSubpathError(f *framework.Framework, pod *v1.Pod, allowContainerT
 				case status.State.Running != nil:
 					return false, fmt.Errorf("subpath container unexpectedly became running")
 				case status.State.Terminated != nil:
+<<<<<<< HEAD
 					if status.State.Terminated.ExitCode != 0 && allowContainerTerminationError {
 						return true, nil
 					}
+=======
+>>>>>>> ff6a78dd494a7f03c4f9585b419a1d42b891c7f5
 					return false, fmt.Errorf("subpath container unexpectedly terminated")
 				case status.State.Waiting != nil:
 					if status.State.Waiting.Reason == "CreateContainerConfigError" &&

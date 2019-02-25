@@ -20,6 +20,10 @@ import (
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/kubernetes/pkg/scheduler/algorithm"
+<<<<<<< HEAD
+=======
+	schedulercache "k8s.io/kubernetes/pkg/scheduler/cache"
+>>>>>>> ff6a78dd494a7f03c4f9585b419a1d42b891c7f5
 	schedulerinternalcache "k8s.io/kubernetes/pkg/scheduler/internal/cache"
 )
 

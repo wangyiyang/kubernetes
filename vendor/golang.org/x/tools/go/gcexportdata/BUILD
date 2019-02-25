@@ -9,7 +9,11 @@ go_library(
     importmap = "k8s.io/kubernetes/vendor/golang.org/x/tools/go/gcexportdata",
     importpath = "golang.org/x/tools/go/gcexportdata",
     visibility = ["//visibility:public"],
+<<<<<<< HEAD
     deps = ["//vendor/golang.org/x/tools/go/internal/gcimporter:go_default_library"],
+=======
+    deps = ["//vendor/golang.org/x/tools/go/gcimporter15:go_default_library"],
+>>>>>>> ff6a78dd494a7f03c4f9585b419a1d42b891c7f5
 )
 
 filegroup(

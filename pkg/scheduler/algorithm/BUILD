@@ -12,7 +12,11 @@ go_library(
     importpath = "k8s.io/kubernetes/pkg/scheduler/algorithm",
     deps = [
         "//pkg/scheduler/api:go_default_library",
+<<<<<<< HEAD
         "//pkg/scheduler/nodeinfo:go_default_library",
+=======
+        "//pkg/scheduler/cache:go_default_library",
+>>>>>>> ff6a78dd494a7f03c4f9585b419a1d42b891c7f5
         "//staging/src/k8s.io/api/apps/v1:go_default_library",
         "//staging/src/k8s.io/api/core/v1:go_default_library",
         "//staging/src/k8s.io/api/policy/v1beta1:go_default_library",

@@ -28,7 +28,11 @@ import (
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	"k8s.io/kubernetes/pkg/features"
 	"k8s.io/kubernetes/pkg/scheduler/algorithm"
+<<<<<<< HEAD
 	schedulernodeinfo "k8s.io/kubernetes/pkg/scheduler/nodeinfo"
+=======
+	schedulercache "k8s.io/kubernetes/pkg/scheduler/cache"
+>>>>>>> ff6a78dd494a7f03c4f9585b419a1d42b891c7f5
 
 	"k8s.io/klog"
 )

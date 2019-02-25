@@ -30,11 +30,15 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/dynamic"
+<<<<<<< HEAD
 	"k8s.io/kubernetes/cmd/kube-apiserver/app/options"
+=======
+>>>>>>> ff6a78dd494a7f03c4f9585b419a1d42b891c7f5
 )
 
 // TestCrossGroupStorage tests to make sure that all objects stored in an expected location in etcd can be converted/read.
 func TestCrossGroupStorage(t *testing.T) {
+<<<<<<< HEAD
 	master := StartRealMasterOrDie(t, func(opts *options.ServerRunOptions) {
 		// force enable all resources so we can check storage.
 		// TODO: drop these once we stop allowing them to be served.
@@ -44,6 +48,9 @@ func TestCrossGroupStorage(t *testing.T) {
 		opts.APIEnablement.RuntimeConfig["extensions/v1beta1/podsecuritypolicies"] = "true"
 		opts.APIEnablement.RuntimeConfig["extensions/v1beta1/networkpolicies"] = "true"
 	})
+=======
+	master := StartRealMasterOrDie(t)
+>>>>>>> ff6a78dd494a7f03c4f9585b419a1d42b891c7f5
 	defer master.Cleanup()
 
 	etcdStorageData := GetEtcdStorageData()

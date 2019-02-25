@@ -7,6 +7,10 @@ go_library(
     visibility = ["//pkg/scheduler:__subpackages__"],
     deps = [
         "//pkg/scheduler/algorithm:go_default_library",
+<<<<<<< HEAD
+=======
+        "//pkg/scheduler/cache:go_default_library",
+>>>>>>> ff6a78dd494a7f03c4f9585b419a1d42b891c7f5
         "//pkg/scheduler/internal/cache:go_default_library",
         "//staging/src/k8s.io/api/core/v1:go_default_library",
         "//staging/src/k8s.io/apimachinery/pkg/labels:go_default_library",

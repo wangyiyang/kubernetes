@@ -92,9 +92,15 @@ func InitNFSDriver() testsuites.TestDriver {
 			),
 			SupportedMountOption: sets.NewString("proto=tcp", "relatime"),
 			RequiredMountOption:  sets.NewString("vers=4.1"),
+<<<<<<< HEAD
 			Capabilities: map[testsuites.Capability]bool{
 				testsuites.CapPersistence: true,
 				testsuites.CapExec:        true,
+=======
+			Capabilities: map[Capability]bool{
+				CapPersistence: true,
+				CapExec:        true,
+>>>>>>> ff6a78dd494a7f03c4f9585b419a1d42b891c7f5
 			},
 		},
 	}
@@ -229,9 +235,15 @@ func InitGlusterFSDriver() testsuites.TestDriver {
 			SupportedFsType: sets.NewString(
 				"", // Default fsType
 			),
+<<<<<<< HEAD
 			Capabilities: map[testsuites.Capability]bool{
 				testsuites.CapPersistence: true,
 				testsuites.CapExec:        true,
+=======
+			Capabilities: map[Capability]bool{
+				CapPersistence: true,
+				CapExec:        true,
+>>>>>>> ff6a78dd494a7f03c4f9585b419a1d42b891c7f5
 			},
 		},
 	}
@@ -349,11 +361,19 @@ func InitISCSIDriver() testsuites.TestDriver {
 				//"ext3",
 				"ext4",
 			),
+<<<<<<< HEAD
 			Capabilities: map[testsuites.Capability]bool{
 				testsuites.CapPersistence: true,
 				testsuites.CapFsGroup:     true,
 				testsuites.CapBlock:       true,
 				testsuites.CapExec:        true,
+=======
+			Capabilities: map[Capability]bool{
+				CapPersistence: true,
+				CapFsGroup:     true,
+				CapBlock:       true,
+				CapExec:        true,
+>>>>>>> ff6a78dd494a7f03c4f9585b419a1d42b891c7f5
 			},
 		},
 	}
@@ -460,11 +480,19 @@ func InitRbdDriver() testsuites.TestDriver {
 				//"ext3",
 				"ext4",
 			),
+<<<<<<< HEAD
 			Capabilities: map[testsuites.Capability]bool{
 				testsuites.CapPersistence: true,
 				testsuites.CapFsGroup:     true,
 				testsuites.CapBlock:       true,
 				testsuites.CapExec:        true,
+=======
+			Capabilities: map[Capability]bool{
+				CapPersistence: true,
+				CapFsGroup:     true,
+				CapBlock:       true,
+				CapExec:        true,
+>>>>>>> ff6a78dd494a7f03c4f9585b419a1d42b891c7f5
 			},
 		},
 	}
@@ -583,9 +611,15 @@ func InitCephFSDriver() testsuites.TestDriver {
 			SupportedFsType: sets.NewString(
 				"", // Default fsType
 			),
+<<<<<<< HEAD
 			Capabilities: map[testsuites.Capability]bool{
 				testsuites.CapPersistence: true,
 				testsuites.CapExec:        true,
+=======
+			Capabilities: map[Capability]bool{
+				CapPersistence: true,
+				CapExec:        true,
+>>>>>>> ff6a78dd494a7f03c4f9585b419a1d42b891c7f5
 			},
 		},
 	}
@@ -680,8 +714,13 @@ func InitHostPathDriver() testsuites.TestDriver {
 			SupportedFsType: sets.NewString(
 				"", // Default fsType
 			),
+<<<<<<< HEAD
 			Capabilities: map[testsuites.Capability]bool{
 				testsuites.CapPersistence: true,
+=======
+			Capabilities: map[Capability]bool{
+				CapPersistence: true,
+>>>>>>> ff6a78dd494a7f03c4f9585b419a1d42b891c7f5
 			},
 		},
 	}
@@ -752,8 +791,13 @@ func InitHostPathSymlinkDriver() testsuites.TestDriver {
 			SupportedFsType: sets.NewString(
 				"", // Default fsType
 			),
+<<<<<<< HEAD
 			Capabilities: map[testsuites.Capability]bool{
 				testsuites.CapPersistence: true,
+=======
+			Capabilities: map[Capability]bool{
+				CapPersistence: true,
+>>>>>>> ff6a78dd494a7f03c4f9585b419a1d42b891c7f5
 			},
 		},
 	}
@@ -892,8 +936,13 @@ func InitEmptydirDriver() testsuites.TestDriver {
 			SupportedFsType: sets.NewString(
 				"", // Default fsType
 			),
+<<<<<<< HEAD
 			Capabilities: map[testsuites.Capability]bool{
 				testsuites.CapExec: true,
+=======
+			Capabilities: map[Capability]bool{
+				CapExec: true,
+>>>>>>> ff6a78dd494a7f03c4f9585b419a1d42b891c7f5
 			},
 		},
 	}
@@ -958,10 +1007,17 @@ func InitCinderDriver() testsuites.TestDriver {
 				"", // Default fsType
 				"ext3",
 			),
+<<<<<<< HEAD
 			Capabilities: map[testsuites.Capability]bool{
 				testsuites.CapPersistence: true,
 				testsuites.CapFsGroup:     true,
 				testsuites.CapExec:        true,
+=======
+			Capabilities: map[Capability]bool{
+				CapPersistence: true,
+				CapFsGroup:     true,
+				CapExec:        true,
+>>>>>>> ff6a78dd494a7f03c4f9585b419a1d42b891c7f5
 			},
 		},
 	}
@@ -1118,11 +1174,19 @@ func InitGcePdDriver() testsuites.TestDriver {
 				"xfs",
 			),
 			SupportedMountOption: sets.NewString("debug", "nouid32"),
+<<<<<<< HEAD
 			Capabilities: map[testsuites.Capability]bool{
 				testsuites.CapPersistence: true,
 				testsuites.CapFsGroup:     true,
 				testsuites.CapBlock:       true,
 				testsuites.CapExec:        true,
+=======
+			Capabilities: map[Capability]bool{
+				CapPersistence: true,
+				CapFsGroup:     true,
+				CapBlock:       true,
+				CapExec:        true,
+>>>>>>> ff6a78dd494a7f03c4f9585b419a1d42b891c7f5
 			},
 		},
 	}
@@ -1236,10 +1300,17 @@ func InitVSphereDriver() testsuites.TestDriver {
 				"", // Default fsType
 				"ext4",
 			),
+<<<<<<< HEAD
 			Capabilities: map[testsuites.Capability]bool{
 				testsuites.CapPersistence: true,
 				testsuites.CapFsGroup:     true,
 				testsuites.CapExec:        true,
+=======
+			Capabilities: map[Capability]bool{
+				CapPersistence: true,
+				CapFsGroup:     true,
+				CapExec:        true,
+>>>>>>> ff6a78dd494a7f03c4f9585b419a1d42b891c7f5
 			},
 		},
 	}
@@ -1357,11 +1428,19 @@ func InitAzureDriver() testsuites.TestDriver {
 				"", // Default fsType
 				"ext4",
 			),
+<<<<<<< HEAD
 			Capabilities: map[testsuites.Capability]bool{
 				testsuites.CapPersistence: true,
 				testsuites.CapFsGroup:     true,
 				testsuites.CapBlock:       true,
 				testsuites.CapExec:        true,
+=======
+			Capabilities: map[Capability]bool{
+				CapPersistence: true,
+				CapFsGroup:     true,
+				CapBlock:       true,
+				CapExec:        true,
+>>>>>>> ff6a78dd494a7f03c4f9585b419a1d42b891c7f5
 			},
 		},
 	}
@@ -1476,11 +1555,19 @@ func InitAwsDriver() testsuites.TestDriver {
 				"ext3",
 			),
 			SupportedMountOption: sets.NewString("debug", "nouid32"),
+<<<<<<< HEAD
 			Capabilities: map[testsuites.Capability]bool{
 				testsuites.CapPersistence: true,
 				testsuites.CapFsGroup:     true,
 				testsuites.CapBlock:       true,
 				testsuites.CapExec:        true,
+=======
+			Capabilities: map[Capability]bool{
+				CapPersistence: true,
+				CapFsGroup:     true,
+				CapBlock:       true,
+				CapExec:        true,
+>>>>>>> ff6a78dd494a7f03c4f9585b419a1d42b891c7f5
 			},
 		},
 	}

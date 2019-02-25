@@ -252,9 +252,15 @@ var _ = SIGDescribe("CronJob", func() {
 		// Job should get deleted when the next job finishes the next minute
 		By("Ensuring this job and its pods does not exist anymore")
 		err = waitForJobToDisappear(f.ClientSet, f.Namespace.Name, finishedJobs[0])
+<<<<<<< HEAD
 		Expect(err).NotTo(HaveOccurred(), "Failed to ensure that job does not exists anymore in namespace %s", f.Namespace.Name)
 		err = waitForJobsPodToDisappear(f.ClientSet, f.Namespace.Name, finishedJobs[0])
 		Expect(err).NotTo(HaveOccurred(), "Failed to ensure that pods for job does not exists anymore in namespace %s", f.Namespace.Name)
+=======
+		Expect(err).NotTo(HaveOccurred())
+		err = waitForJobsPodToDisappear(f.ClientSet, f.Namespace.Name, finishedJobs[0])
+		Expect(err).NotTo(HaveOccurred())
+>>>>>>> ff6a78dd494a7f03c4f9585b419a1d42b891c7f5
 
 		By("Ensuring there is 1 finished job by listing jobs explicitly")
 		jobs, err = f.ClientSet.BatchV1().Jobs(f.Namespace.Name).List(metav1.ListOptions{})

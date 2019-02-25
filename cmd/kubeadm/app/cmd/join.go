@@ -314,12 +314,18 @@ func newJoinData(cmd *cobra.Command, args []string, options *joinOptions, out io
 		options.externalcfg.Discovery.File = nil
 	}
 
+<<<<<<< HEAD
 	// if an APIServerEndpoint from which to retrive cluster information was not provided, unset the Discovery.BootstrapToken object
 	if len(args) == 0 {
 		options.externalcfg.Discovery.BootstrapToken = nil
 	} else {
 		if len(options.cfgPath) == 0 && len(args) > 1 {
 			klog.Warningf("[join] WARNING: More than one API server endpoint supplied on command line %v. Using the first one.", args)
+=======
+	if internalCfg.ControlPlane != nil {
+		if err := configutil.VerifyAPIServerBindAddress(internalCfg.ControlPlane.LocalAPIEndpoint.AdvertiseAddress); err != nil {
+			return nil, err
+>>>>>>> ff6a78dd494a7f03c4f9585b419a1d42b891c7f5
 		}
 		options.externalcfg.Discovery.BootstrapToken.APIServerEndpoint = args[0]
 	}
@@ -427,9 +433,24 @@ func (j *joinData) IgnorePreflightErrors() sets.String {
 	return j.ignorePreflightErrors
 }
 
+<<<<<<< HEAD
 // OutputWriter returns the io.Writer used to write messages such as the "join done" message.
 func (j *joinData) OutputWriter() io.Writer {
 	return j.outputWriter
+=======
+// waitForTLSBootstrappedClient waits for the /etc/kubernetes/kubelet.conf file to be available
+func waitForTLSBootstrappedClient() error {
+	fmt.Println("[tlsbootstrap] Waiting for the kubelet to perform the TLS Bootstrap...")
+
+	// Loop on every falsy return. Return with an error if raised. Exit successfully if true is returned.
+	return wait.PollImmediate(kubeadmconstants.APICallRetryInterval, kubeadmconstants.TLSBootstrapTimeout, func() (bool, error) {
+		// Check that we can create a client set out of the kubelet kubeconfig. This ensures not
+		// only that the kubeconfig file exists, but that other files required by it also exist (like
+		// client certificate and key)
+		_, err := kubeconfigutil.ClientSetFromFile(kubeadmconstants.GetKubeletKubeConfigPath())
+		return (err == nil), nil
+	})
+>>>>>>> ff6a78dd494a7f03c4f9585b419a1d42b891c7f5
 }
 
 // fetchInitConfigurationFromJoinConfiguration retrieves the init configuration from a join configuration, performing the discovery

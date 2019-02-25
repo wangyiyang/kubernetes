@@ -62,7 +62,11 @@ func CreateLocalEtcdStaticPodManifestFile(manifestDir string, nodeName string, c
 }
 
 // CheckLocalEtcdClusterStatus verifies health state of local/stacked etcd cluster before installing a new etcd member
+<<<<<<< HEAD
 func CheckLocalEtcdClusterStatus(client clientset.Interface, cfg *kubeadmapi.ClusterConfiguration) error {
+=======
+func CheckLocalEtcdClusterStatus(client clientset.Interface, cfg *kubeadmapi.InitConfiguration) error {
+>>>>>>> ff6a78dd494a7f03c4f9585b419a1d42b891c7f5
 	fmt.Println("[etcd] Checking etcd cluster health")
 
 	// creates an etcd client that connects to all the local/stacked etcd members
@@ -143,7 +147,12 @@ func CreateStackedEtcdStaticPodManifestFile(client clientset.Interface, manifest
 	fmt.Printf("[etcd] Wrote Static Pod manifest for a local etcd member to %q\n", kubeadmconstants.GetStaticPodFilepath(kubeadmconstants.Etcd, manifestDir))
 
 	fmt.Printf("[etcd] Waiting for the new etcd member to join the cluster. This can take up to %v\n", etcdHealthyCheckInterval*etcdHealthyCheckRetries)
+<<<<<<< HEAD
 	if _, err := etcdClient.WaitForClusterAvailable(etcdHealthyCheckRetries, etcdHealthyCheckInterval); err != nil {
+=======
+	noDelay := 0 * time.Second
+	if _, err := etcdClient.WaitForClusterAvailable(noDelay, etcdHealthyCheckRetries, etcdHealthyCheckInterval); err != nil {
+>>>>>>> ff6a78dd494a7f03c4f9585b419a1d42b891c7f5
 		return err
 	}
 

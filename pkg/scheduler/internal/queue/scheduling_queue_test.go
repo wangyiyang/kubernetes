@@ -98,21 +98,30 @@ var highPriorityPod, highPriNominatedPod, medPriorityPod, unschedulablePod = v1.
 func addOrUpdateUnschedulablePod(p *PriorityQueue, pod *v1.Pod) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
+<<<<<<< HEAD
 	p.unschedulableQ.addOrUpdate(newPodInfoNoTimestamp(pod))
+=======
+	p.unschedulableQ.addOrUpdate(pod)
+>>>>>>> ff6a78dd494a7f03c4f9585b419a1d42b891c7f5
 }
 
 func getUnschedulablePod(p *PriorityQueue, pod *v1.Pod) *v1.Pod {
 	p.lock.Lock()
 	defer p.lock.Unlock()
+<<<<<<< HEAD
 	pInfo := p.unschedulableQ.get(pod)
 	if pInfo != nil {
 		return pInfo.pod
 	}
 	return nil
+=======
+	return p.unschedulableQ.get(pod)
+>>>>>>> ff6a78dd494a7f03c4f9585b419a1d42b891c7f5
 }
 
 func TestPriorityQueue_Add(t *testing.T) {
 	q := NewPriorityQueue(nil)
+<<<<<<< HEAD
 	if err := q.Add(&medPriorityPod); err != nil {
 		t.Errorf("add failed: %v", err)
 	}
@@ -122,6 +131,11 @@ func TestPriorityQueue_Add(t *testing.T) {
 	if err := q.Add(&highPriorityPod); err != nil {
 		t.Errorf("add failed: %v", err)
 	}
+=======
+	q.Add(&medPriorityPod)
+	q.Add(&unschedulablePod)
+	q.Add(&highPriorityPod)
+>>>>>>> ff6a78dd494a7f03c4f9585b419a1d42b891c7f5
 	expectedNominatedPods := &nominatedPodMap{
 		nominatedPodToNode: map[types.UID]string{
 			medPriorityPod.UID:   "node1",
@@ -279,7 +293,11 @@ func TestPriorityQueue_AddUnschedulableIfNotPresent_Async(t *testing.T) {
 	wg.Wait()
 	// all other pods should be in active queue again
 	for i := 1; i < totalNum; i++ {
+<<<<<<< HEAD
 		if _, exists, _ := q.activeQ.Get(newPodInfoNoTimestamp(&expectedPods[i])); !exists {
+=======
+		if _, exists, _ := q.activeQ.Get(&expectedPods[i]); !exists {
+>>>>>>> ff6a78dd494a7f03c4f9585b419a1d42b891c7f5
 			t.Errorf("Expected %v to be added to activeQ.", expectedPods[i].Name)
 		}
 	}
@@ -353,10 +371,17 @@ func TestPriorityQueue_Delete(t *testing.T) {
 	}
 	if len(q.nominatedPods.nominatedPods) != 1 {
 		t.Errorf("Expected nomindatePods to have only 'unschedulablePod': %v", q.nominatedPods.nominatedPods)
+<<<<<<< HEAD
 	}
 	if err := q.Delete(&unschedulablePod); err != nil {
 		t.Errorf("delete failed: %v", err)
 	}
+=======
+	}
+	if err := q.Delete(&unschedulablePod); err != nil {
+		t.Errorf("delete failed: %v", err)
+	}
+>>>>>>> ff6a78dd494a7f03c4f9585b419a1d42b891c7f5
 	if len(q.nominatedPods.nominatedPods) != 0 {
 		t.Errorf("Expected nomindatePods to be empty: %v", q.nominatedPods)
 	}
@@ -446,6 +471,7 @@ func TestPriorityQueue_NominatedPodsForNode(t *testing.T) {
 	}
 }
 
+<<<<<<< HEAD
 func TestPriorityQueue_PendingPods(t *testing.T) {
 	makeSet := func(pods []*v1.Pod) map[*v1.Pod]struct{} {
 		pendingSet := map[*v1.Pod]struct{}{}
@@ -470,6 +496,8 @@ func TestPriorityQueue_PendingPods(t *testing.T) {
 	}
 }
 
+=======
+>>>>>>> ff6a78dd494a7f03c4f9585b419a1d42b891c7f5
 func TestPriorityQueue_UpdateNominatedPodForNode(t *testing.T) {
 	q := NewPriorityQueue(nil)
 	if err := q.Add(&medPriorityPod); err != nil {
@@ -803,6 +831,7 @@ func TestPodFailedSchedulingMultipleTimesDoesNotBlockNewerPod(t *testing.T) {
 			NominatedNodeName: "node1",
 		},
 	}
+<<<<<<< HEAD
 
 	// Update pod condition to unschedulable.
 	podutil.UpdatePodCondition(&unschedulablePod.Status, &v1.PodCondition{
@@ -816,6 +845,18 @@ func TestPodFailedSchedulingMultipleTimesDoesNotBlockNewerPod(t *testing.T) {
 	q.AddUnschedulableIfNotPresent(&unschedulablePod, q.SchedulingCycle())
 	// Clear its backoff to simulate backoff its expiration
 	q.clearPodBackoff(&unschedulablePod)
+=======
+	// Update pod condition to unschedulable.
+	podutil.UpdatePodCondition(&unschedulablePod.Status, &v1.PodCondition{
+		Type:          v1.PodScheduled,
+		Status:        v1.ConditionFalse,
+		Reason:        v1.PodReasonUnschedulable,
+		Message:       "fake scheduling failure",
+		LastProbeTime: metav1.Now(),
+	})
+	// Put in the unschedulable queue
+	q.AddUnschedulableIfNotPresent(&unschedulablePod, q.SchedulingCycle())
+>>>>>>> ff6a78dd494a7f03c4f9585b419a1d42b891c7f5
 	// Move all unschedulable pods to the active queue.
 	q.MoveAllToActiveQueue()
 
@@ -849,6 +890,7 @@ func TestPodFailedSchedulingMultipleTimesDoesNotBlockNewerPod(t *testing.T) {
 
 	// And then unschedulablePod was determined as unschedulable AGAIN.
 	podutil.UpdatePodCondition(&unschedulablePod.Status, &v1.PodCondition{
+<<<<<<< HEAD
 		Type:    v1.PodScheduled,
 		Status:  v1.ConditionFalse,
 		Reason:  v1.PodReasonUnschedulable,
@@ -859,6 +901,16 @@ func TestPodFailedSchedulingMultipleTimesDoesNotBlockNewerPod(t *testing.T) {
 	q.AddUnschedulableIfNotPresent(&unschedulablePod, q.SchedulingCycle())
 	// Clear its backoff to simulate its backoff expiration
 	q.clearPodBackoff(&unschedulablePod)
+=======
+		Type:          v1.PodScheduled,
+		Status:        v1.ConditionFalse,
+		Reason:        v1.PodReasonUnschedulable,
+		Message:       "fake scheduling failure",
+		LastProbeTime: metav1.Now(),
+	})
+	// And then, put unschedulable pod to the unschedulable queue
+	q.AddUnschedulableIfNotPresent(&unschedulablePod, q.SchedulingCycle())
+>>>>>>> ff6a78dd494a7f03c4f9585b419a1d42b891c7f5
 	// Move all unschedulable pods to the active queue.
 	q.MoveAllToActiveQueue()
 
@@ -873,6 +925,7 @@ func TestPodFailedSchedulingMultipleTimesDoesNotBlockNewerPod(t *testing.T) {
 	}
 }
 
+<<<<<<< HEAD
 // TestHighPriorityBackoff tests that a high priority pod does not block
 // other pods if it is unschedulable
 func TestHighProirotyBackoff(t *testing.T) {
@@ -936,6 +989,8 @@ func TestHighProirotyBackoff(t *testing.T) {
 	}
 }
 
+=======
+>>>>>>> ff6a78dd494a7f03c4f9585b419a1d42b891c7f5
 // TestHighProirotyFlushUnschedulableQLeftover tests that pods will be moved to
 // activeQ after one minutes if it is in unschedulableQ
 func TestHighProirotyFlushUnschedulableQLeftover(t *testing.T) {
@@ -967,16 +1022,30 @@ func TestHighProirotyFlushUnschedulableQLeftover(t *testing.T) {
 		},
 	}
 
+<<<<<<< HEAD
 	// Update pod condition to highPod.
 	podutil.UpdatePodCondition(&highPod.Status, &v1.PodCondition{
 		Type:    v1.PodScheduled,
 		Status:  v1.ConditionFalse,
 		Reason:  v1.PodReasonUnschedulable,
 		Message: "fake scheduling failure",
+=======
+	addOrUpdateUnschedulablePod(q, &highPod)
+	addOrUpdateUnschedulablePod(q, &midPod)
+
+	// Update pod condition to highPod.
+	podutil.UpdatePodCondition(&highPod.Status, &v1.PodCondition{
+		Type:          v1.PodScheduled,
+		Status:        v1.ConditionFalse,
+		Reason:        v1.PodReasonUnschedulable,
+		Message:       "fake scheduling failure",
+		LastProbeTime: metav1.Time{Time: time.Now().Add(-1 * unschedulableQTimeInterval)},
+>>>>>>> ff6a78dd494a7f03c4f9585b419a1d42b891c7f5
 	})
 
 	// Update pod condition to midPod.
 	podutil.UpdatePodCondition(&midPod.Status, &v1.PodCondition{
+<<<<<<< HEAD
 		Type:    v1.PodScheduled,
 		Status:  v1.ConditionFalse,
 		Reason:  v1.PodReasonUnschedulable,
@@ -988,6 +1057,15 @@ func TestHighProirotyFlushUnschedulableQLeftover(t *testing.T) {
 	q.unschedulableQ.podInfoMap[util.GetPodFullName(&highPod)].timestamp = time.Now().Add(-1 * unschedulableQTimeInterval)
 	q.unschedulableQ.podInfoMap[util.GetPodFullName(&midPod)].timestamp = time.Now().Add(-1 * unschedulableQTimeInterval)
 
+=======
+		Type:          v1.PodScheduled,
+		Status:        v1.ConditionFalse,
+		Reason:        v1.PodReasonUnschedulable,
+		Message:       "fake scheduling failure",
+		LastProbeTime: metav1.Time{Time: time.Now().Add(-1 * unschedulableQTimeInterval)},
+	})
+
+>>>>>>> ff6a78dd494a7f03c4f9585b419a1d42b891c7f5
 	if p, err := q.Pop(); err != nil || p != &highPod {
 		t.Errorf("Expected: %v after Pop, but got: %v", highPriorityPod.Name, p.Name)
 	}
@@ -995,6 +1073,7 @@ func TestHighProirotyFlushUnschedulableQLeftover(t *testing.T) {
 		t.Errorf("Expected: %v after Pop, but got: %v", medPriorityPod.Name, p.Name)
 	}
 }
+<<<<<<< HEAD
 
 // TestPodTimestamp tests the operations related to podInfo.
 func TestPodTimestamp(t *testing.T) {
@@ -1135,3 +1214,5 @@ func TestPodTimestamp(t *testing.T) {
 		})
 	}
 }
+=======
+>>>>>>> ff6a78dd494a7f03c4f9585b419a1d42b891c7f5

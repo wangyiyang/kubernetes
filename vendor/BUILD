@@ -428,10 +428,14 @@ filegroup(
         "//vendor/golang.org/x/tools/container/intsets:all-srcs",
         "//vendor/golang.org/x/tools/go/ast/astutil:all-srcs",
         "//vendor/golang.org/x/tools/go/gcexportdata:all-srcs",
+<<<<<<< HEAD
         "//vendor/golang.org/x/tools/go/internal/cgo:all-srcs",
         "//vendor/golang.org/x/tools/go/internal/gcimporter:all-srcs",
         "//vendor/golang.org/x/tools/go/internal/packagesdriver:all-srcs",
         "//vendor/golang.org/x/tools/go/packages:all-srcs",
+=======
+        "//vendor/golang.org/x/tools/go/gcimporter15:all-srcs",
+>>>>>>> ff6a78dd494a7f03c4f9585b419a1d42b891c7f5
         "//vendor/golang.org/x/tools/go/vcs:all-srcs",
         "//vendor/golang.org/x/tools/imports:all-srcs",
         "//vendor/golang.org/x/tools/internal/fastwalk:all-srcs",

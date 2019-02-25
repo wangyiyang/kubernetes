@@ -41,7 +41,10 @@ export KUBE_RACE=" "
 # Disable coverage report
 export KUBE_COVER="n"
 export ARTIFACTS=${ARTIFACTS:-"${WORKSPACE}/artifacts"}
+<<<<<<< HEAD
 export FULL_LOG="true"
+=======
+>>>>>>> ff6a78dd494a7f03c4f9585b419a1d42b891c7f5
 
 mkdir -p "${ARTIFACTS}"
 cd /go/src/k8s.io/kubernetes

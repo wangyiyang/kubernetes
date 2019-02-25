@@ -573,7 +573,11 @@ func getLocalIP() ([]v1.NodeAddress, error) {
 							continue
 						}
 						if vmwareOUI[vmMACAddr[:8]] {
+<<<<<<< HEAD
 							nodehelpers.AddToNodeAddresses(&addrs,
+=======
+							v1helper.AddToNodeAddresses(&addrs,
+>>>>>>> ff6a78dd494a7f03c4f9585b419a1d42b891c7f5
 								v1.NodeAddress{
 									Type:    v1.NodeExternalIP,
 									Address: ipnet.IP.String(),

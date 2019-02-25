@@ -321,6 +321,362 @@ func (c *configFactory) GetScheduledPodLister() corelisters.PodLister {
 	return c.scheduledPodLister
 }
 
+<<<<<<< HEAD
+=======
+func (c *configFactory) addPodToCache(obj interface{}) {
+	pod, ok := obj.(*v1.Pod)
+	if !ok {
+		klog.Errorf("cannot convert to *v1.Pod: %v", obj)
+		return
+	}
+
+	if err := c.schedulerCache.AddPod(pod); err != nil {
+		klog.Errorf("scheduler cache AddPod failed: %v", err)
+	}
+
+	c.podQueue.AssignedPodAdded(pod)
+
+	// NOTE: Updating equivalence cache of addPodToCache has been
+	// handled optimistically in: pkg/scheduler/scheduler.go#assume()
+}
+
+func (c *configFactory) updatePodInCache(oldObj, newObj interface{}) {
+	oldPod, ok := oldObj.(*v1.Pod)
+	if !ok {
+		klog.Errorf("cannot convert oldObj to *v1.Pod: %v", oldObj)
+		return
+	}
+	newPod, ok := newObj.(*v1.Pod)
+	if !ok {
+		klog.Errorf("cannot convert newObj to *v1.Pod: %v", newObj)
+		return
+	}
+
+	// NOTE: Updates must be written to scheduler cache before invalidating
+	// equivalence cache, because we could snapshot equivalence cache after the
+	// invalidation and then snapshot the cache itself. If the cache is
+	// snapshotted before updates are written, we would update equivalence
+	// cache with stale information which is based on snapshot of old cache.
+	if err := c.schedulerCache.UpdatePod(oldPod, newPod); err != nil {
+		klog.Errorf("scheduler cache UpdatePod failed: %v", err)
+	}
+
+	c.invalidateCachedPredicatesOnUpdatePod(newPod, oldPod)
+	c.podQueue.AssignedPodUpdated(newPod)
+}
+
+func (c *configFactory) addPodToSchedulingQueue(obj interface{}) {
+	if err := c.podQueue.Add(obj.(*v1.Pod)); err != nil {
+		runtime.HandleError(fmt.Errorf("unable to queue %T: %v", obj, err))
+	}
+}
+
+func (c *configFactory) updatePodInSchedulingQueue(oldObj, newObj interface{}) {
+	pod := newObj.(*v1.Pod)
+	if c.skipPodUpdate(pod) {
+		return
+	}
+	if err := c.podQueue.Update(oldObj.(*v1.Pod), pod); err != nil {
+		runtime.HandleError(fmt.Errorf("unable to update %T: %v", newObj, err))
+	}
+}
+
+func (c *configFactory) deletePodFromSchedulingQueue(obj interface{}) {
+	var pod *v1.Pod
+	switch t := obj.(type) {
+	case *v1.Pod:
+		pod = obj.(*v1.Pod)
+	case cache.DeletedFinalStateUnknown:
+		var ok bool
+		pod, ok = t.Obj.(*v1.Pod)
+		if !ok {
+			runtime.HandleError(fmt.Errorf("unable to convert object %T to *v1.Pod in %T", obj, c))
+			return
+		}
+	default:
+		runtime.HandleError(fmt.Errorf("unable to handle object in %T: %T", c, obj))
+		return
+	}
+	if err := c.podQueue.Delete(pod); err != nil {
+		runtime.HandleError(fmt.Errorf("unable to dequeue %T: %v", obj, err))
+	}
+	if c.volumeBinder != nil {
+		// Volume binder only wants to keep unassigned pods
+		c.volumeBinder.DeletePodBindings(pod)
+	}
+}
+
+func (c *configFactory) invalidateCachedPredicatesOnUpdatePod(newPod *v1.Pod, oldPod *v1.Pod) {
+	if c.enableEquivalenceClassCache {
+		// if the pod does not have bound node, updating equivalence cache is meaningless;
+		// if pod's bound node has been changed, that case should be handled by pod add & delete.
+		if len(newPod.Spec.NodeName) != 0 && newPod.Spec.NodeName == oldPod.Spec.NodeName {
+			if !reflect.DeepEqual(oldPod.GetLabels(), newPod.GetLabels()) {
+				// MatchInterPodAffinity need to be reconsidered for this node,
+				// as well as all nodes in its same failure domain.
+				c.equivalencePodCache.InvalidatePredicates(
+					matchInterPodAffinitySet)
+			}
+			// if requested container resource changed, invalidate GeneralPredicates of this node
+			if !reflect.DeepEqual(predicates.GetResourceRequest(newPod),
+				predicates.GetResourceRequest(oldPod)) {
+				c.equivalencePodCache.InvalidatePredicatesOnNode(
+					newPod.Spec.NodeName, generalPredicatesSets)
+			}
+		}
+	}
+}
+
+func (c *configFactory) deletePodFromCache(obj interface{}) {
+	var pod *v1.Pod
+	switch t := obj.(type) {
+	case *v1.Pod:
+		pod = t
+	case cache.DeletedFinalStateUnknown:
+		var ok bool
+		pod, ok = t.Obj.(*v1.Pod)
+		if !ok {
+			klog.Errorf("cannot convert to *v1.Pod: %v", t.Obj)
+			return
+		}
+	default:
+		klog.Errorf("cannot convert to *v1.Pod: %v", t)
+		return
+	}
+	// NOTE: Updates must be written to scheduler cache before invalidating
+	// equivalence cache, because we could snapshot equivalence cache after the
+	// invalidation and then snapshot the cache itself. If the cache is
+	// snapshotted before updates are written, we would update equivalence
+	// cache with stale information which is based on snapshot of old cache.
+	if err := c.schedulerCache.RemovePod(pod); err != nil {
+		klog.Errorf("scheduler cache RemovePod failed: %v", err)
+	}
+
+	c.invalidateCachedPredicatesOnDeletePod(pod)
+	c.podQueue.MoveAllToActiveQueue()
+}
+
+func (c *configFactory) invalidateCachedPredicatesOnDeletePod(pod *v1.Pod) {
+	if c.enableEquivalenceClassCache {
+		// part of this case is the same as pod add.
+		c.equivalencePodCache.InvalidateCachedPredicateItemForPodAdd(pod, pod.Spec.NodeName)
+		// MatchInterPodAffinity need to be reconsidered for this node,
+		// as well as all nodes in its same failure domain.
+		// TODO(resouer) can we just do this for nodes in the same failure domain
+		c.equivalencePodCache.InvalidatePredicates(
+			matchInterPodAffinitySet)
+
+		// if this pod have these PV, cached result of disk conflict will become invalid.
+		for _, volume := range pod.Spec.Volumes {
+			if volume.GCEPersistentDisk != nil || volume.AWSElasticBlockStore != nil ||
+				volume.RBD != nil || volume.ISCSI != nil {
+				c.equivalencePodCache.InvalidatePredicatesOnNode(
+					pod.Spec.NodeName, noDiskConflictSet)
+			}
+		}
+	}
+}
+
+func (c *configFactory) addNodeToCache(obj interface{}) {
+	node, ok := obj.(*v1.Node)
+	if !ok {
+		klog.Errorf("cannot convert to *v1.Node: %v", obj)
+		return
+	}
+
+	// NOTE: Because the scheduler uses equivalence cache for nodes, we need
+	// to create it before adding node into scheduler cache.
+	if c.enableEquivalenceClassCache {
+		// GetNodeCache() will lazily create NodeCache for given node if it does not exist.
+		c.equivalencePodCache.GetNodeCache(node.GetName())
+	}
+
+	if err := c.schedulerCache.AddNode(node); err != nil {
+		klog.Errorf("scheduler cache AddNode failed: %v", err)
+	}
+
+	c.podQueue.MoveAllToActiveQueue()
+	// NOTE: add a new node does not affect existing predicates in equivalence cache
+}
+
+func (c *configFactory) updateNodeInCache(oldObj, newObj interface{}) {
+	oldNode, ok := oldObj.(*v1.Node)
+	if !ok {
+		klog.Errorf("cannot convert oldObj to *v1.Node: %v", oldObj)
+		return
+	}
+	newNode, ok := newObj.(*v1.Node)
+	if !ok {
+		klog.Errorf("cannot convert newObj to *v1.Node: %v", newObj)
+		return
+	}
+
+	// NOTE: Updates must be written to scheduler cache before invalidating
+	// equivalence cache, because we could snapshot equivalence cache after the
+	// invalidation and then snapshot the cache itself. If the cache is
+	// snapshotted before updates are written, we would update equivalence
+	// cache with stale information which is based on snapshot of old cache.
+	if err := c.schedulerCache.UpdateNode(oldNode, newNode); err != nil {
+		klog.Errorf("scheduler cache UpdateNode failed: %v", err)
+	}
+
+	c.invalidateCachedPredicatesOnNodeUpdate(newNode, oldNode)
+	// Only activate unschedulable pods if the node became more schedulable.
+	// We skip the node property comparison when there is no unschedulable pods in the queue
+	// to save processing cycles. We still trigger a move to active queue to cover the case
+	// that a pod being processed by the scheduler is determined unschedulable. We want this
+	// pod to be reevaluated when a change in the cluster happens.
+	if c.podQueue.NumUnschedulablePods() == 0 || nodeSchedulingPropertiesChanged(newNode, oldNode) {
+		c.podQueue.MoveAllToActiveQueue()
+	}
+}
+
+func (c *configFactory) invalidateCachedPredicatesOnNodeUpdate(newNode *v1.Node, oldNode *v1.Node) {
+	if c.enableEquivalenceClassCache {
+		// Begin to update equivalence cache based on node update
+		// TODO(resouer): think about lazily initialize this set
+		invalidPredicates := sets.NewString()
+
+		if !reflect.DeepEqual(oldNode.Status.Allocatable, newNode.Status.Allocatable) {
+			invalidPredicates.Insert(predicates.GeneralPred) // "PodFitsResources"
+		}
+		if !reflect.DeepEqual(oldNode.GetLabels(), newNode.GetLabels()) {
+			invalidPredicates.Insert(predicates.GeneralPred, predicates.CheckServiceAffinityPred) // "PodSelectorMatches"
+			for k, v := range oldNode.GetLabels() {
+				// any label can be topology key of pod, we have to invalidate in all cases
+				if v != newNode.GetLabels()[k] {
+					invalidPredicates.Insert(predicates.MatchInterPodAffinityPred)
+				}
+				// NoVolumeZoneConflict will only be affected by zone related label change
+				if isZoneRegionLabel(k) {
+					if v != newNode.GetLabels()[k] {
+						invalidPredicates.Insert(predicates.NoVolumeZoneConflictPred)
+					}
+				}
+			}
+		}
+
+		oldTaints, oldErr := helper.GetTaintsFromNodeAnnotations(oldNode.GetAnnotations())
+		if oldErr != nil {
+			klog.Errorf("Failed to get taints from old node annotation for equivalence cache")
+		}
+		newTaints, newErr := helper.GetTaintsFromNodeAnnotations(newNode.GetAnnotations())
+		if newErr != nil {
+			klog.Errorf("Failed to get taints from new node annotation for equivalence cache")
+		}
+		if !reflect.DeepEqual(oldTaints, newTaints) ||
+			!reflect.DeepEqual(oldNode.Spec.Taints, newNode.Spec.Taints) {
+			invalidPredicates.Insert(predicates.PodToleratesNodeTaintsPred)
+		}
+
+		if !reflect.DeepEqual(oldNode.Status.Conditions, newNode.Status.Conditions) {
+			oldConditions := make(map[v1.NodeConditionType]v1.ConditionStatus)
+			newConditions := make(map[v1.NodeConditionType]v1.ConditionStatus)
+			for _, cond := range oldNode.Status.Conditions {
+				oldConditions[cond.Type] = cond.Status
+			}
+			for _, cond := range newNode.Status.Conditions {
+				newConditions[cond.Type] = cond.Status
+			}
+			if oldConditions[v1.NodeMemoryPressure] != newConditions[v1.NodeMemoryPressure] {
+				invalidPredicates.Insert(predicates.CheckNodeMemoryPressurePred)
+			}
+			if oldConditions[v1.NodeDiskPressure] != newConditions[v1.NodeDiskPressure] {
+				invalidPredicates.Insert(predicates.CheckNodeDiskPressurePred)
+			}
+			if oldConditions[v1.NodePIDPressure] != newConditions[v1.NodePIDPressure] {
+				invalidPredicates.Insert(predicates.CheckNodePIDPressurePred)
+			}
+			if oldConditions[v1.NodeReady] != newConditions[v1.NodeReady] ||
+				oldConditions[v1.NodeOutOfDisk] != newConditions[v1.NodeOutOfDisk] ||
+				oldConditions[v1.NodeNetworkUnavailable] != newConditions[v1.NodeNetworkUnavailable] {
+				invalidPredicates.Insert(predicates.CheckNodeConditionPred)
+			}
+		}
+		if newNode.Spec.Unschedulable != oldNode.Spec.Unschedulable {
+			invalidPredicates.Insert(predicates.CheckNodeConditionPred)
+		}
+		c.equivalencePodCache.InvalidatePredicatesOnNode(newNode.GetName(), invalidPredicates)
+	}
+}
+
+func nodeSchedulingPropertiesChanged(newNode *v1.Node, oldNode *v1.Node) bool {
+	if nodeSpecUnschedulableChanged(newNode, oldNode) {
+		return true
+	}
+	if nodeAllocatableChanged(newNode, oldNode) {
+		return true
+	}
+	if nodeLabelsChanged(newNode, oldNode) {
+		return true
+	}
+	if nodeTaintsChanged(newNode, oldNode) {
+		return true
+	}
+	if nodeConditionsChanged(newNode, oldNode) {
+		return true
+	}
+
+	return false
+}
+
+func nodeAllocatableChanged(newNode *v1.Node, oldNode *v1.Node) bool {
+	return !reflect.DeepEqual(oldNode.Status.Allocatable, newNode.Status.Allocatable)
+}
+
+func nodeLabelsChanged(newNode *v1.Node, oldNode *v1.Node) bool {
+	return !reflect.DeepEqual(oldNode.GetLabels(), newNode.GetLabels())
+}
+
+func nodeTaintsChanged(newNode *v1.Node, oldNode *v1.Node) bool {
+	return !reflect.DeepEqual(newNode.Spec.Taints, oldNode.Spec.Taints)
+}
+
+func nodeConditionsChanged(newNode *v1.Node, oldNode *v1.Node) bool {
+	strip := func(conditions []v1.NodeCondition) map[v1.NodeConditionType]v1.ConditionStatus {
+		conditionStatuses := make(map[v1.NodeConditionType]v1.ConditionStatus, len(conditions))
+		for i := range conditions {
+			conditionStatuses[conditions[i].Type] = conditions[i].Status
+		}
+		return conditionStatuses
+	}
+	return !reflect.DeepEqual(strip(oldNode.Status.Conditions), strip(newNode.Status.Conditions))
+}
+
+func nodeSpecUnschedulableChanged(newNode *v1.Node, oldNode *v1.Node) bool {
+	return newNode.Spec.Unschedulable != oldNode.Spec.Unschedulable && newNode.Spec.Unschedulable == false
+}
+
+func (c *configFactory) deleteNodeFromCache(obj interface{}) {
+	var node *v1.Node
+	switch t := obj.(type) {
+	case *v1.Node:
+		node = t
+	case cache.DeletedFinalStateUnknown:
+		var ok bool
+		node, ok = t.Obj.(*v1.Node)
+		if !ok {
+			klog.Errorf("cannot convert to *v1.Node: %v", t.Obj)
+			return
+		}
+	default:
+		klog.Errorf("cannot convert to *v1.Node: %v", t)
+		return
+	}
+	// NOTE: Updates must be written to scheduler cache before invalidating
+	// equivalence cache, because we could snapshot equivalence cache after the
+	// invalidation and then snapshot the cache itself. If the cache is
+	// snapshotted before updates are written, we would update equivalence
+	// cache with stale information which is based on snapshot of old cache.
+	if err := c.schedulerCache.RemoveNode(node); err != nil {
+		klog.Errorf("scheduler cache RemoveNode failed: %v", err)
+	}
+	if c.enableEquivalenceClassCache {
+		c.equivalencePodCache.InvalidateAllPredicatesOnNode(node.GetName())
+	}
+}
+
+>>>>>>> ff6a78dd494a7f03c4f9585b419a1d42b891c7f5
 // Create creates a scheduler with the default algorithm provider.
 func (c *configFactory) Create() (*Config, error) {
 	return c.CreateFromProvider(DefaultProvider)
@@ -689,6 +1045,14 @@ func MakeDefaultErrorFunc(client clientset.Interface, backoff *util.PodBackoff, 
 				if err == nil {
 					if len(pod.Spec.NodeName) == 0 {
 						podQueue.AddUnschedulableIfNotPresent(pod, podSchedulingCycle)
+<<<<<<< HEAD
+=======
+					} else {
+						if c.volumeBinder != nil {
+							// Volume binder only wants to keep unassigned pods
+							c.volumeBinder.DeletePodBindings(pod)
+						}
+>>>>>>> ff6a78dd494a7f03c4f9585b419a1d42b891c7f5
 					}
 					break
 				}

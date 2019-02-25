@@ -66,7 +66,11 @@ REQUIRED_BINS=(
   "github.com/onsi/ginkgo/ginkgo"
   "golang.org/x/lint/golint"
   "k8s.io/kube-openapi/cmd/openapi-gen"
+<<<<<<< HEAD
   "k8s.io/repo-infra/kazel"
+=======
+  "golang.org/x/lint/golint"
+>>>>>>> ff6a78dd494a7f03c4f9585b419a1d42b891c7f5
   "./..."
 )
 

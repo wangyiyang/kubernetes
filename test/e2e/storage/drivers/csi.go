@@ -69,7 +69,13 @@ func initHostPathCSIDriver(name string, capabilities map[testsuites.Capability]b
 			SupportedFsType: sets.NewString(
 				"", // Default fsType
 			),
+<<<<<<< HEAD
 			Capabilities: capabilities,
+=======
+			Capabilities: map[Capability]bool{
+				CapPersistence: true,
+			},
+>>>>>>> ff6a78dd494a7f03c4f9585b419a1d42b891c7f5
 		},
 		manifests: manifests,
 	}
@@ -204,10 +210,15 @@ func InitMockCSIDriver(registerDriver, driverAttachable bool, podInfoVersion *st
 			SupportedFsType: sets.NewString(
 				"", // Default fsType
 			),
+<<<<<<< HEAD
 			Capabilities: map[testsuites.Capability]bool{
 				testsuites.CapPersistence: false,
 				testsuites.CapFsGroup:     false,
 				testsuites.CapExec:        false,
+=======
+			Capabilities: map[Capability]bool{
+				CapPersistence: true,
+>>>>>>> ff6a78dd494a7f03c4f9585b419a1d42b891c7f5
 			},
 		},
 		manifests:      driverManifests,
@@ -321,11 +332,18 @@ func InitGcePDCSIDriver(topologyEnabled bool) testsuites.TestDriver {
 				"ext4",
 				"xfs",
 			),
+<<<<<<< HEAD
 			Capabilities: map[testsuites.Capability]bool{
 				testsuites.CapPersistence: true,
 				testsuites.CapFsGroup:     true,
 				testsuites.CapExec:        true,
 				testsuites.CapMultiPODs:   true,
+=======
+			Capabilities: map[Capability]bool{
+				CapPersistence: true,
+				CapFsGroup:     true,
+				CapExec:        true,
+>>>>>>> ff6a78dd494a7f03c4f9585b419a1d42b891c7f5
 			},
 		},
 	}
@@ -435,11 +453,18 @@ func InitGcePDExternalCSIDriver() testsuites.TestDriver {
 				"ext4",
 				"xfs",
 			),
+<<<<<<< HEAD
 			Capabilities: map[testsuites.Capability]bool{
 				testsuites.CapPersistence: true,
 				testsuites.CapFsGroup:     true,
 				testsuites.CapExec:        true,
 				testsuites.CapMultiPODs:   true,
+=======
+			Capabilities: map[Capability]bool{
+				CapPersistence: true,
+				CapFsGroup:     true,
+				CapExec:        true,
+>>>>>>> ff6a78dd494a7f03c4f9585b419a1d42b891c7f5
 			},
 		},
 	}

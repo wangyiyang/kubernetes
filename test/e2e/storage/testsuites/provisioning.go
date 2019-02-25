@@ -226,9 +226,15 @@ func (p *provisioningTestSuite) defineTests(driver TestDriver, pattern testpatte
 		l.testCase.TestDynamicProvisioning()
 	})
 
+<<<<<<< HEAD
 	It("should allow concurrent writes on the same node", func() {
 		if !dInfo.Capabilities[CapMultiPODs] {
 			framework.Skipf("Driver %q does not support multiple concurrent pods - skipping", dInfo.Name)
+=======
+	It("should create and delete block persistent volumes", func() {
+		if !input.dInfo.Capabilities[drivers.CapBlock] {
+			framework.Skipf("Driver %q does not support BlockVolume - skipping", input.dInfo.Name)
+>>>>>>> ff6a78dd494a7f03c4f9585b419a1d42b891c7f5
 		}
 
 		init()

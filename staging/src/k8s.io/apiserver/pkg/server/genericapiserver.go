@@ -349,7 +349,11 @@ func (s *GenericAPIServer) installAPIResources(apiPrefix string, apiGroupInfo *A
 		if apiGroupInfo.OptionsExternalVersion != nil {
 			apiGroupVersion.OptionsExternalVersion = apiGroupInfo.OptionsExternalVersion
 		}
+<<<<<<< HEAD
 		apiGroupVersion.OpenAPIModels = openAPIModels
+=======
+		apiGroupVersion.OpenAPIModels = openAPIGroupModels
+>>>>>>> ff6a78dd494a7f03c4f9585b419a1d42b891c7f5
 		apiGroupVersion.MaxRequestBodyBytes = s.maxRequestBodyBytes
 
 		if err := apiGroupVersion.InstallREST(s.Handler.GoRestfulContainer); err != nil {

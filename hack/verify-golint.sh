@@ -24,6 +24,18 @@ source "${KUBE_ROOT}/hack/lib/util.sh"
 
 kube::golang::verify_go_version
 
+<<<<<<< HEAD
+=======
+
+# Ensure that we find the binaries we build before anything else.
+export GOBIN="${KUBE_OUTPUT_BINPATH}"
+PATH="${GOBIN}:${PATH}"
+
+# Install golint from vendor
+echo 'installing golint from vendor'
+go install k8s.io/kubernetes/vendor/golang.org/x/lint/golint
+
+>>>>>>> ff6a78dd494a7f03c4f9585b419a1d42b891c7f5
 
 # Ensure that we find the binaries we build before anything else.
 export GOBIN="${KUBE_OUTPUT_BINPATH}"

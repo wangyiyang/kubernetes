@@ -27,7 +27,10 @@ go_library(
     srcs = [
         "backoff_utils.go",
         "clock.go",
+<<<<<<< HEAD
         "heap.go",
+=======
+>>>>>>> ff6a78dd494a7f03c4f9585b419a1d42b891c7f5
         "utils.go",
     ],
     importpath = "k8s.io/kubernetes/pkg/scheduler/util",

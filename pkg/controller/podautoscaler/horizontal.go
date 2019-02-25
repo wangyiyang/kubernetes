@@ -213,6 +213,7 @@ func (a *HorizontalController) processNextWorkItem() bool {
 	if err != nil {
 		utilruntime.HandleError(err)
 	}
+<<<<<<< HEAD
 	// Add request processing HPA to queue with resyncPeriod delay.
 	// Requests are always added to queue with resyncPeriod delay. If there's already request
 	// for the HPA in the queue then a new request is always dropped. Requests spend resyncPeriod
@@ -222,6 +223,12 @@ func (a *HorizontalController) processNextWorkItem() bool {
 	// and removing them from queue. Request can be added by resync before previous request is
 	// removed from queue. If we didn't add request here then in this case one request would be dropped
 	// and HPA would processed after 2 x resyncPeriod.
+=======
+	// Add request processing HPA after resync interval just in case last resync didn't insert
+	// request into the queue. Request is not inserted into queue by resync if previous one wasn't processed yet.
+	// This happens quite often because requests from previous resync are removed from the queue at the same moment
+	// as next resync inserts new requests.
+>>>>>>> ff6a78dd494a7f03c4f9585b419a1d42b891c7f5
 	if !deleted {
 		a.queue.AddRateLimited(key)
 	}

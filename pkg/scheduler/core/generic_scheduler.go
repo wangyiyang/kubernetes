@@ -290,7 +290,11 @@ func (g *genericScheduler) Preempt(pod *v1.Pod, nodeLister algorithm.NodeLister,
 	if !ok || fitError == nil {
 		return nil, nil, nil, nil
 	}
+<<<<<<< HEAD
 	if !podEligibleToPreemptOthers(pod, g.nodeInfoSnapshot.NodeInfoMap) {
+=======
+	if !podEligibleToPreemptOthers(pod, g.cachedNodeInfoMap) {
+>>>>>>> ff6a78dd494a7f03c4f9585b419a1d42b891c7f5
 		klog.V(5).Infof("Pod %v/%v is not eligible for more preemption.", pod.Namespace, pod.Name)
 		return nil, nil, nil, nil
 	}
