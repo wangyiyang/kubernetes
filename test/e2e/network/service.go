@@ -35,7 +35,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	clientset "k8s.io/client-go/kubernetes"
 	cloudprovider "k8s.io/cloud-provider"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	gcecloud "k8s.io/kubernetes/pkg/cloudprovider/providers/gce"
 	"k8s.io/kubernetes/pkg/controller/endpoint"
 	"k8s.io/kubernetes/test/e2e/framework"
@@ -80,12 +79,10 @@ var _ = SIGDescribe("Services", func() {
 	f := framework.NewDefaultFramework("services")
 
 	var cs clientset.Interface
-	var internalClientset internalclientset.Interface
 	serviceLBNames := []string{}
 
 	BeforeEach(func() {
 		cs = f.ClientSet
-		internalClientset = f.InternalClientset
 	})
 
 	AfterEach(func() {
@@ -322,10 +319,10 @@ var _ = SIGDescribe("Services", func() {
 		numPods, servicePort := 3, defaultServeHostnameServicePort
 
 		By("creating service1 in namespace " + ns)
-		podNames1, svc1IP, err := framework.StartServeHostnameService(cs, internalClientset, getServeHostnameService("service1"), ns, numPods)
+		podNames1, svc1IP, err := framework.StartServeHostnameService(cs, getServeHostnameService("service1"), ns, numPods)
 		Expect(err).NotTo(HaveOccurred(), "failed to create replication controller with service: %s in the namespace: %s", svc1IP, ns)
 		By("creating service2 in namespace " + ns)
-		podNames2, svc2IP, err := framework.StartServeHostnameService(cs, internalClientset, getServeHostnameService("service2"), ns, numPods)
+		podNames2, svc2IP, err := framework.StartServeHostnameService(cs, getServeHostnameService("service2"), ns, numPods)
 		Expect(err).NotTo(HaveOccurred(), "failed to create replication controller with service: %s in the namespace: %s", svc2IP, ns)
 
 		hosts, err := framework.NodeSSHHosts(cs)
@@ -352,7 +349,7 @@ var _ = SIGDescribe("Services", func() {
 
 		// Start another service and verify both are up.
 		By("creating service3 in namespace " + ns)
-		podNames3, svc3IP, err := framework.StartServeHostnameService(cs, internalClientset, getServeHostnameService("service3"), ns, numPods)
+		podNames3, svc3IP, err := framework.StartServeHostnameService(cs, getServeHostnameService("service3"), ns, numPods)
 		Expect(err).NotTo(HaveOccurred(), "failed to create replication controller with service: %s in the namespace: %s", svc3IP, ns)
 
 		if svc2IP == svc3IP {
@@ -379,13 +376,13 @@ var _ = SIGDescribe("Services", func() {
 		defer func() {
 			framework.ExpectNoError(framework.StopServeHostnameService(f.ClientSet, ns, svc1))
 		}()
-		podNames1, svc1IP, err := framework.StartServeHostnameService(cs, internalClientset, getServeHostnameService(svc1), ns, numPods)
+		podNames1, svc1IP, err := framework.StartServeHostnameService(cs, getServeHostnameService(svc1), ns, numPods)
 		Expect(err).NotTo(HaveOccurred(), "failed to create replication controller with service: %s in the namespace: %s", svc1IP, ns)
 
 		defer func() {
 			framework.ExpectNoError(framework.StopServeHostnameService(f.ClientSet, ns, svc2))
 		}()
-		podNames2, svc2IP, err := framework.StartServeHostnameService(cs, internalClientset, getServeHostnameService(svc2), ns, numPods)
+		podNames2, svc2IP, err := framework.StartServeHostnameService(cs, getServeHostnameService(svc2), ns, numPods)
 		Expect(err).NotTo(HaveOccurred(), "failed to create replication controller with service: %s in the namespace: %s", svc2IP, ns)
 
 		if svc1IP == svc2IP {
@@ -432,7 +429,7 @@ var _ = SIGDescribe("Services", func() {
 		defer func() {
 			framework.ExpectNoError(framework.StopServeHostnameService(f.ClientSet, ns, "service1"))
 		}()
-		podNames1, svc1IP, err := framework.StartServeHostnameService(cs, internalClientset, getServeHostnameService("service1"), ns, numPods)
+		podNames1, svc1IP, err := framework.StartServeHostnameService(cs, getServeHostnameService("service1"), ns, numPods)
 		Expect(err).NotTo(HaveOccurred(), "failed to create replication controller with service: %s in the namespace: %s", svc1IP, ns)
 
 		hosts, err := framework.NodeSSHHosts(cs)
@@ -459,7 +456,7 @@ var _ = SIGDescribe("Services", func() {
 		defer func() {
 			framework.ExpectNoError(framework.StopServeHostnameService(f.ClientSet, ns, "service2"))
 		}()
-		podNames2, svc2IP, err := framework.StartServeHostnameService(cs, internalClientset, getServeHostnameService("service2"), ns, numPods)
+		podNames2, svc2IP, err := framework.StartServeHostnameService(cs, getServeHostnameService("service2"), ns, numPods)
 		Expect(err).NotTo(HaveOccurred(), "failed to create replication controller with service: %s in the namespace: %s", svc2IP, ns)
 
 		if svc1IP == svc2IP {
@@ -791,11 +788,47 @@ var _ = SIGDescribe("Services", func() {
 		jig.TestReachableUDP(nodeIP, udpNodePort, framework.KubeProxyLagTimeout)
 
 		By("hitting the TCP service's LoadBalancer")
-		jig.TestReachableHTTP(tcpIngressIP, svcPort, loadBalancerCreateTimeout) // this may actually recreate the LB
+		jig.TestReachableHTTP(tcpIngressIP, svcPort, loadBalancerCreateTimeout)
 
 		if loadBalancerSupportsUDP {
 			By("hitting the UDP service's LoadBalancer")
-			jig.TestReachableUDP(udpIngressIP, svcPort, loadBalancerCreateTimeout) // this may actually recreate the LB)
+			jig.TestReachableUDP(udpIngressIP, svcPort, loadBalancerCreateTimeout)
+		}
+
+		By("Scaling the pods to 0")
+		jig.Scale(ns1, 0)
+		jig.Scale(ns2, 0)
+
+		By("looking for ICMP REJECT on the TCP service's NodePort")
+		jig.TestRejectedHTTP(nodeIP, tcpNodePort, framework.KubeProxyLagTimeout)
+
+		By("looking for ICMP REJECT on the UDP service's NodePort")
+		jig.TestRejectedUDP(nodeIP, udpNodePort, framework.KubeProxyLagTimeout)
+
+		By("looking for ICMP REJECT on the TCP service's LoadBalancer")
+		jig.TestRejectedHTTP(tcpIngressIP, svcPort, loadBalancerCreateTimeout)
+
+		if loadBalancerSupportsUDP {
+			By("looking for ICMP REJECT on the UDP service's LoadBalancer")
+			jig.TestRejectedUDP(udpIngressIP, svcPort, loadBalancerCreateTimeout)
+		}
+
+		By("Scaling the pods to 1")
+		jig.Scale(ns1, 1)
+		jig.Scale(ns2, 1)
+
+		By("hitting the TCP service's NodePort")
+		jig.TestReachableHTTP(nodeIP, tcpNodePort, framework.KubeProxyLagTimeout)
+
+		By("hitting the UDP service's NodePort")
+		jig.TestReachableUDP(nodeIP, udpNodePort, framework.KubeProxyLagTimeout)
+
+		By("hitting the TCP service's LoadBalancer")
+		jig.TestReachableHTTP(tcpIngressIP, svcPort, loadBalancerCreateTimeout)
+
+		if loadBalancerSupportsUDP {
+			By("hitting the UDP service's LoadBalancer")
+			jig.TestReachableUDP(udpIngressIP, svcPort, loadBalancerCreateTimeout)
 		}
 
 		// Change the services back to ClusterIP.
@@ -1707,12 +1740,12 @@ var _ = SIGDescribe("Services", func() {
 		By("creating service-disabled in namespace " + ns)
 		svcDisabled := getServeHostnameService("service-disabled")
 		svcDisabled.ObjectMeta.Labels = serviceProxyNameLabels
-		_, svcDisabledIP, err := framework.StartServeHostnameService(cs, internalClientset, svcDisabled, ns, numPods)
+		_, svcDisabledIP, err := framework.StartServeHostnameService(cs, svcDisabled, ns, numPods)
 		Expect(err).NotTo(HaveOccurred(), "failed to create replication controller with service: %s in the namespace: %s", svcDisabledIP, ns)
 
 		By("creating service in namespace " + ns)
 		svcToggled := getServeHostnameService("service")
-		podToggledNames, svcToggledIP, err := framework.StartServeHostnameService(cs, internalClientset, svcToggled, ns, numPods)
+		podToggledNames, svcToggledIP, err := framework.StartServeHostnameService(cs, svcToggled, ns, numPods)
 		Expect(err).NotTo(HaveOccurred(), "failed to create replication controller with service: %s in the namespace: %s", svcToggledIP, ns)
 
 		jig := framework.NewServiceTestJig(cs, svcToggled.ObjectMeta.Name)
@@ -2063,14 +2096,18 @@ var _ = SIGDescribe("ESIPP [Slow] [DisabledForLargeClusters]", func() {
 		for nodeName, nodeIPs := range endpointNodeMap {
 			By(fmt.Sprintf("checking kube-proxy health check fails on node with endpoint (%s), public IP %s", nodeName, nodeIPs[0]))
 			var body bytes.Buffer
-			var result bool
-			var err error
-			if pollErr := wait.PollImmediate(framework.Poll, framework.ServiceTestTimeout, func() (bool, error) {
-				result, err = framework.TestReachableHTTPWithContent(nodeIPs[0], healthCheckNodePort, "/healthz", "", &body)
-				return !result, nil
-			}); pollErr != nil {
-				framework.Failf("Kube-proxy still exposing health check on node %v:%v, after ESIPP was turned off. Last err %v, last body %v",
-					nodeName, healthCheckNodePort, err, body.String())
+			pollfn := func() (bool, error) {
+				result := framework.PokeHTTP(nodeIPs[0], healthCheckNodePort, "/healthz", nil)
+				if result.Code == 0 {
+					return true, nil
+				}
+				body.Reset()
+				body.Write(result.Body)
+				return false, nil
+			}
+			if pollErr := wait.PollImmediate(framework.Poll, framework.ServiceTestTimeout, pollfn); pollErr != nil {
+				framework.Failf("Kube-proxy still exposing health check on node %v:%v, after ESIPP was turned off. body %s",
+					nodeName, healthCheckNodePort, body.String())
 			}
 		}
 
@@ -2171,7 +2208,7 @@ func execAffinityTestForNonLBService(f *framework.Framework, cs clientset.Interf
 	By("creating service in namespace " + ns)
 	serviceType := svc.Spec.Type
 	svc.Spec.SessionAffinity = v1.ServiceAffinityClientIP
-	_, _, err := framework.StartServeHostnameService(cs, f.InternalClientset, svc, ns, numPods)
+	_, _, err := framework.StartServeHostnameService(cs, svc, ns, numPods)
 	Expect(err).NotTo(HaveOccurred(), "failed to create replication controller with service in the namespace: %s", ns)
 	defer func() {
 		framework.StopServeHostnameService(cs, ns, serviceName)
@@ -2200,17 +2237,17 @@ func execAffinityTestForNonLBService(f *framework.Framework, cs clientset.Interf
 	Expect(err).NotTo(HaveOccurred(), "failed to fetch pod: %s in namespace: %s", execPodName, ns)
 
 	if !isTransitionTest {
-		Expect(framework.CheckAffinity(jig, execPod, svcIp, servicePort, true, false)).To(BeTrue())
+		Expect(framework.CheckAffinity(jig, execPod, svcIp, servicePort, true)).To(BeTrue())
 	}
 	if isTransitionTest {
 		svc = jig.UpdateServiceOrFail(svc.Namespace, svc.Name, func(svc *v1.Service) {
 			svc.Spec.SessionAffinity = v1.ServiceAffinityNone
 		})
-		Expect(framework.CheckAffinity(jig, execPod, svcIp, servicePort, false, true)).To(BeTrue())
+		Expect(framework.CheckAffinity(jig, execPod, svcIp, servicePort, false)).To(BeTrue())
 		svc = jig.UpdateServiceOrFail(svc.Namespace, svc.Name, func(svc *v1.Service) {
 			svc.Spec.SessionAffinity = v1.ServiceAffinityClientIP
 		})
-		Expect(framework.CheckAffinity(jig, execPod, svcIp, servicePort, true, true)).To(BeTrue())
+		Expect(framework.CheckAffinity(jig, execPod, svcIp, servicePort, true)).To(BeTrue())
 	}
 }
 
@@ -2222,7 +2259,7 @@ func execAffinityTestForLBService(f *framework.Framework, cs clientset.Interface
 
 	By("creating service in namespace " + ns)
 	svc.Spec.SessionAffinity = v1.ServiceAffinityClientIP
-	_, _, err := framework.StartServeHostnameService(cs, f.InternalClientset, svc, ns, numPods)
+	_, _, err := framework.StartServeHostnameService(cs, svc, ns, numPods)
 	Expect(err).NotTo(HaveOccurred(), "failed to create replication controller with service in the namespace: %s", ns)
 	jig := framework.NewServiceTestJig(cs, serviceName)
 	By("waiting for loadbalancer for service " + ns + "/" + serviceName)
@@ -2240,16 +2277,16 @@ func execAffinityTestForLBService(f *framework.Framework, cs clientset.Interface
 	port := int(svc.Spec.Ports[0].Port)
 
 	if !isTransitionTest {
-		Expect(framework.CheckAffinity(jig, nil, ingressIP, port, true, false)).To(BeTrue())
+		Expect(framework.CheckAffinity(jig, nil, ingressIP, port, true)).To(BeTrue())
 	}
 	if isTransitionTest {
 		svc = jig.UpdateServiceOrFail(svc.Namespace, svc.Name, func(svc *v1.Service) {
 			svc.Spec.SessionAffinity = v1.ServiceAffinityNone
 		})
-		Expect(framework.CheckAffinity(jig, nil, ingressIP, port, false, true)).To(BeTrue())
+		Expect(framework.CheckAffinity(jig, nil, ingressIP, port, false)).To(BeTrue())
 		svc = jig.UpdateServiceOrFail(svc.Namespace, svc.Name, func(svc *v1.Service) {
 			svc.Spec.SessionAffinity = v1.ServiceAffinityClientIP
 		})
-		Expect(framework.CheckAffinity(jig, nil, ingressIP, port, true, true)).To(BeTrue())
+		Expect(framework.CheckAffinity(jig, nil, ingressIP, port, true)).To(BeTrue())
 	}
 }

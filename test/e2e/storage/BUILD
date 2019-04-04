@@ -3,6 +3,7 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library")
 go_library(
     name = "go_default_library",
     srcs = [
+        "csi_mock_volume.go",
         "csi_volumes.go",
         "detach_mounted.go",
         "empty_dir_wrapper.go",
@@ -64,7 +65,6 @@ go_library(
         "//staging/src/k8s.io/client-go/kubernetes:go_default_library",
         "//staging/src/k8s.io/client-go/kubernetes/typed/core/v1:go_default_library",
         "//staging/src/k8s.io/cloud-provider/volume/helpers:go_default_library",
-        "//staging/src/k8s.io/csi-api/pkg/client/clientset/versioned:go_default_library",
         "//test/e2e/framework:go_default_library",
         "//test/e2e/framework/metrics:go_default_library",
         "//test/e2e/framework/providers/gce:go_default_library",
@@ -95,6 +95,7 @@ filegroup(
     srcs = [
         ":package-srcs",
         "//test/e2e/storage/drivers:all-srcs",
+        "//test/e2e/storage/external:all-srcs",
         "//test/e2e/storage/testpatterns:all-srcs",
         "//test/e2e/storage/testsuites:all-srcs",
         "//test/e2e/storage/utils:all-srcs",

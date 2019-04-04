@@ -61,14 +61,14 @@ var _ = utils.SIGDescribe("Volume expand", func() {
 			AllowVolumeExpansion: true,
 		}
 		resizableSc, err = createStorageClass(test, ns, "resizing", c)
-		Expect(err).NotTo(HaveOccurred(), "Error creating resizable storage class")
+		framework.ExpectNoError(err, "Error creating resizable storage class")
 		Expect(resizableSc.AllowVolumeExpansion).NotTo(BeNil())
 		Expect(*resizableSc.AllowVolumeExpansion).To(BeTrue())
 
 		pvc = newClaim(test, ns, "default")
 		pvc.Spec.StorageClassName = &resizableSc.Name
 		pvc, err = c.CoreV1().PersistentVolumeClaims(pvc.Namespace).Create(pvc)
-		Expect(err).NotTo(HaveOccurred(), "Error creating pvc")
+		framework.ExpectNoError(err, "Error creating pvc")
 	})
 
 	AfterEach(func() {
@@ -82,7 +82,7 @@ var _ = utils.SIGDescribe("Volume expand", func() {
 			ClaimSize: "2Gi",
 		}
 		regularSC, err := createStorageClass(test, ns, "noexpand", c)
-		Expect(err).NotTo(HaveOccurred(), "Error creating non-expandable storage class")
+		framework.ExpectNoError(err, "Error creating non-expandable storage class")
 
 		defer func() {
 			framework.ExpectNoError(c.StorageV1().StorageClasses().Delete(regularSC.Name, nil))
@@ -92,7 +92,7 @@ var _ = utils.SIGDescribe("Volume expand", func() {
 		noExpandPVC := newClaim(test, ns, "noexpand")
 		noExpandPVC.Spec.StorageClassName = &regularSC.Name
 		noExpandPVC, err = c.CoreV1().PersistentVolumeClaims(noExpandPVC.Namespace).Create(noExpandPVC)
-		Expect(err).NotTo(HaveOccurred(), "Error creating pvc")
+		framework.ExpectNoError(err, "Error creating pvc")
 
 		defer func() {
 			framework.ExpectNoError(framework.DeletePersistentVolumeClaim(c, noExpandPVC.Name, noExpandPVC.Namespace))
@@ -100,7 +100,7 @@ var _ = utils.SIGDescribe("Volume expand", func() {
 
 		pvcClaims := []*v1.PersistentVolumeClaim{noExpandPVC}
 		pvs, err := framework.WaitForPVClaimBoundPhase(c, pvcClaims, framework.ClaimProvisionTimeout)
-		Expect(err).NotTo(HaveOccurred(), "Failed waiting for PVC to be bound %v", err)
+		framework.ExpectNoError(err, "Failed waiting for PVC to be bound %v", err)
 		Expect(len(pvs)).To(Equal(1))
 
 		By("Expanding non-expandable pvc")
@@ -113,21 +113,21 @@ var _ = utils.SIGDescribe("Volume expand", func() {
 		By("Waiting for pvc to be in bound phase")
 		pvcClaims := []*v1.PersistentVolumeClaim{pvc}
 		pvs, err := framework.WaitForPVClaimBoundPhase(c, pvcClaims, framework.ClaimProvisionTimeout)
-		Expect(err).NotTo(HaveOccurred(), "Failed waiting for PVC to be bound %v", err)
+		framework.ExpectNoError(err, "Failed waiting for PVC to be bound %v", err)
 		Expect(len(pvs)).To(Equal(1))
 
 		By("Creating a pod with dynamically provisioned volume")
 		pod, err := framework.CreatePod(c, ns, nil, pvcClaims, false, "")
-		Expect(err).NotTo(HaveOccurred(), "While creating pods for resizing")
+		framework.ExpectNoError(err, "While creating pods for resizing")
 		defer func() {
 			err = framework.DeletePodWithWait(f, c, pod)
-			Expect(err).NotTo(HaveOccurred(), "while cleaning up pod already deleted in resize test")
+			framework.ExpectNoError(err, "while cleaning up pod already deleted in resize test")
 		}()
 
 		By("Expanding current pvc")
 		newSize := resource.MustParse("6Gi")
 		pvc, err = expandPVCSize(pvc, newSize, c)
-		Expect(err).NotTo(HaveOccurred(), "While updating pvc for more size")
+		framework.ExpectNoError(err, "While updating pvc for more size")
 		Expect(pvc).NotTo(BeNil())
 
 		pvcSize := pvc.Spec.Resources.Requests[v1.ResourceStorage]
@@ -136,12 +136,12 @@ var _ = utils.SIGDescribe("Volume expand", func() {
 		}
 
 		By("Waiting for cloudprovider resize to finish")
-		err = waitForControllerVolumeResize(pvc, c)
-		Expect(err).NotTo(HaveOccurred(), "While waiting for pvc resize to finish")
+		err = waitForControllerVolumeResize(pvc, c, totalResizeWaitPeriod)
+		framework.ExpectNoError(err, "While waiting for pvc resize to finish")
 
 		By("Checking for conditions on pvc")
 		pvc, err = c.CoreV1().PersistentVolumeClaims(ns).Get(pvc.Name, metav1.GetOptions{})
-		Expect(err).NotTo(HaveOccurred(), "While fetching pvc after controller resize")
+		framework.ExpectNoError(err, "While fetching pvc after controller resize")
 
 		inProgressConditions := pvc.Status.Conditions
 		Expect(len(inProgressConditions)).To(Equal(1), "pvc must have file system resize pending condition")
@@ -149,19 +149,19 @@ var _ = utils.SIGDescribe("Volume expand", func() {
 
 		By("Deleting the previously created pod")
 		err = framework.DeletePodWithWait(f, c, pod)
-		Expect(err).NotTo(HaveOccurred(), "while deleting pod for resizing")
+		framework.ExpectNoError(err, "while deleting pod for resizing")
 
 		By("Creating a new pod with same volume")
 		pod2, err := framework.CreatePod(c, ns, nil, pvcClaims, false, "")
-		Expect(err).NotTo(HaveOccurred(), "while recreating pod for resizing")
+		framework.ExpectNoError(err, "while recreating pod for resizing")
 		defer func() {
 			err = framework.DeletePodWithWait(f, c, pod2)
-			Expect(err).NotTo(HaveOccurred(), "while cleaning up pod before exiting resizing test")
+			framework.ExpectNoError(err, "while cleaning up pod before exiting resizing test")
 		}()
 
 		By("Waiting for file system resize to finish")
 		pvc, err = waitForFSResize(pvc, c)
-		Expect(err).NotTo(HaveOccurred(), "while waiting for fs resize to finish")
+		framework.ExpectNoError(err, "while waiting for fs resize to finish")
 
 		pvcConditions := pvc.Status.Conditions
 		Expect(len(pvcConditions)).To(Equal(0), "pvc should not have conditions")
@@ -198,9 +198,29 @@ func expandPVCSize(origPVC *v1.PersistentVolumeClaim, size resource.Quantity, c 
 	return updatedPVC, waitErr
 }
 
-func waitForControllerVolumeResize(pvc *v1.PersistentVolumeClaim, c clientset.Interface) error {
+func waitForResizingCondition(pvc *v1.PersistentVolumeClaim, c clientset.Interface, duration time.Duration) error {
+	waitErr := wait.PollImmediate(resizePollInterval, duration, func() (bool, error) {
+		var err error
+		updatedPVC, err := c.CoreV1().PersistentVolumeClaims(pvc.Namespace).Get(pvc.Name, metav1.GetOptions{})
+
+		if err != nil {
+			return false, fmt.Errorf("error fetching pvc %q for checking for resize status : %v", pvc.Name, err)
+		}
+
+		pvcConditions := updatedPVC.Status.Conditions
+		if len(pvcConditions) > 0 {
+			if pvcConditions[0].Type == v1.PersistentVolumeClaimResizing {
+				return true, nil
+			}
+		}
+		return false, nil
+	})
+	return waitErr
+}
+
+func waitForControllerVolumeResize(pvc *v1.PersistentVolumeClaim, c clientset.Interface, duration time.Duration) error {
 	pvName := pvc.Spec.VolumeName
-	return wait.PollImmediate(resizePollInterval, totalResizeWaitPeriod, func() (bool, error) {
+	return wait.PollImmediate(resizePollInterval, duration, func() (bool, error) {
 		pvcSize := pvc.Spec.Resources.Requests[v1.ResourceStorage]
 
 		pv, err := c.CoreV1().PersistentVolumes().Get(pvName, metav1.GetOptions{})

@@ -121,11 +121,13 @@ const (
 	// - https://github.com/container-storage-interface/spec/issues/178
 	// - NodeStageVolume in the spec
 	CapMultiPODs Capability = "multipods"
+
+	CapRWX Capability = "RWX" // support ReadWriteMany access modes
 )
 
 // DriverInfo represents static information about a TestDriver.
 type DriverInfo struct {
-	Name       string // Name of the driver
+	Name       string // Name of the driver, aka the provisioner name.
 	FeatureTag string // FeatureTag for the driver
 
 	MaxFileSize          int64               // Max file size to be tested for this driver

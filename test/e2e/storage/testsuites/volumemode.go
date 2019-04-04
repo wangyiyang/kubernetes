@@ -25,7 +25,6 @@ import (
 	"k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/test/e2e/framework"
 	"k8s.io/kubernetes/test/e2e/storage/testpatterns"
@@ -67,12 +66,10 @@ func (t *volumeModeTestSuite) defineTests(driver TestDriver, pattern testpattern
 		config      *PerTestConfig
 		testCleanup func()
 
-		cs     clientset.Interface
-		ns     *v1.Namespace
-		sc     *storagev1.StorageClass
-		pvc    *v1.PersistentVolumeClaim
-		pv     *v1.PersistentVolume
-		volume TestVolume
+		cs clientset.Interface
+		ns *v1.Namespace
+		// genericVolumeTestResource contains pv, pvc, sc, etc., owns cleaning that up
+		genericVolumeTestResource
 	}
 	var (
 		dInfo = driver.GetDriverInfo()
@@ -103,6 +100,12 @@ func (t *volumeModeTestSuite) defineTests(driver TestDriver, pattern testpattern
 			pvSource           *v1.PersistentVolumeSource
 			volumeNodeAffinity *v1.VolumeNodeAffinity
 		)
+
+		l.genericVolumeTestResource = genericVolumeTestResource{
+			driver:  driver,
+			config:  l.config,
+			pattern: pattern,
+		}
 
 		// Create volume for pre-provisioned volume tests
 		l.volume = CreateVolume(driver, l.config, pattern.VolType)
@@ -144,26 +147,7 @@ func (t *volumeModeTestSuite) defineTests(driver TestDriver, pattern testpattern
 	}
 
 	cleanup := func() {
-		if l.pv != nil || l.pvc != nil {
-			By("Deleting pv and pvc")
-			errs := framework.PVPVCCleanup(f.ClientSet, f.Namespace.Name, l.pv, l.pvc)
-			if len(errs) > 0 {
-				framework.Logf("Failed to delete PV and/or PVC: %v", utilerrors.NewAggregate(errs))
-			}
-			l.pv = nil
-			l.pvc = nil
-		}
-
-		if l.sc != nil {
-			By("Deleting sc")
-			deleteStorageClass(f.ClientSet, l.sc.Name)
-			l.sc = nil
-		}
-
-		if l.volume != nil {
-			l.volume.DeleteVolume()
-			l.volume = nil
-		}
+		l.cleanupResource()
 
 		if l.testCleanup != nil {
 			l.testCleanup()
@@ -198,9 +182,9 @@ func (t *volumeModeTestSuite) defineTests(driver TestDriver, pattern testpattern
 				framework.ExpectNoError(framework.WaitOnPVandPVC(l.cs, l.ns.Name, l.pv, l.pvc))
 
 				By("Creating pod")
-				pod, err := framework.CreateSecPodWithNodeName(l.cs, l.ns.Name, []*v1.PersistentVolumeClaim{l.pvc},
+				pod, err := framework.CreateSecPodWithNodeSelection(l.cs, l.ns.Name, []*v1.PersistentVolumeClaim{l.pvc},
 					false, "", false, false, framework.SELinuxLabel,
-					nil, l.config.ClientNodeName, framework.PodStartTimeout)
+					nil, framework.NodeSelection{Name: l.config.ClientNodeName}, framework.PodStartTimeout)
 				defer func() {
 					framework.ExpectNoError(framework.DeletePodWithWait(f, l.cs, pod))
 				}()
@@ -229,9 +213,9 @@ func (t *volumeModeTestSuite) defineTests(driver TestDriver, pattern testpattern
 				framework.ExpectNoError(framework.WaitOnPVandPVC(l.cs, l.ns.Name, l.pv, l.pvc))
 
 				By("Creating pod")
-				pod, err := framework.CreateSecPodWithNodeName(l.cs, l.ns.Name, []*v1.PersistentVolumeClaim{l.pvc},
+				pod, err := framework.CreateSecPodWithNodeSelection(l.cs, l.ns.Name, []*v1.PersistentVolumeClaim{l.pvc},
 					false, "", false, false, framework.SELinuxLabel,
-					nil, l.config.ClientNodeName, framework.PodStartTimeout)
+					nil, framework.NodeSelection{Name: l.config.ClientNodeName}, framework.PodStartTimeout)
 				defer func() {
 					framework.ExpectNoError(framework.DeletePodWithWait(f, l.cs, pod))
 				}()
@@ -289,9 +273,9 @@ func (t *volumeModeTestSuite) defineTests(driver TestDriver, pattern testpattern
 				Expect(err).NotTo(HaveOccurred())
 
 				By("Creating pod")
-				pod, err := framework.CreateSecPodWithNodeName(l.cs, l.ns.Name, []*v1.PersistentVolumeClaim{l.pvc},
+				pod, err := framework.CreateSecPodWithNodeSelection(l.cs, l.ns.Name, []*v1.PersistentVolumeClaim{l.pvc},
 					false, "", false, false, framework.SELinuxLabel,
-					nil, l.config.ClientNodeName, framework.PodStartTimeout)
+					nil, framework.NodeSelection{Name: l.config.ClientNodeName}, framework.PodStartTimeout)
 				defer func() {
 					framework.ExpectNoError(framework.DeletePodWithWait(f, l.cs, pod))
 				}()

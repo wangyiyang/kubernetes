@@ -397,7 +397,10 @@ runTests() {
    if [[ -n "${WHAT-}" ]]; then
     for pkg in ${WHAT}
     do 
-      record_command run_${pkg}_tests
+      # running of kubeadm is captured in hack/make-targets/test-cmd.sh
+      if [[ "${pkg}" != "kubeadm" ]]; then 
+        record_command run_${pkg}_tests
+      fi
     done
     cleanup_tests
     return
@@ -509,6 +512,9 @@ runTests() {
   ######################
   if kube::test::if_supports_resource "${secrets}" ; then
     record_command run_create_secret_tests
+  fi
+  if kube::test::if_supports_resource "${deployments}"; then
+    record_command run_kubectl_create_kustomization_directory_tests
   fi
 
   ######################

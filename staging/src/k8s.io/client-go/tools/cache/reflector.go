@@ -17,6 +17,7 @@ limitations under the License.
 package cache
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -24,10 +25,8 @@ import (
 	"net"
 	"net/url"
 	"reflect"
-	"strconv"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -40,6 +39,7 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/client-go/tools/pager"
 	"k8s.io/klog"
 	"k8s.io/utils/trace"
 )
@@ -70,6 +70,9 @@ type Reflector struct {
 	lastSyncResourceVersion string
 	// lastSyncResourceVersionMutex guards read/write access to lastSyncResourceVersion
 	lastSyncResourceVersionMutex sync.RWMutex
+	// WatchListPageSize is the requested chunk size of initial and resync watch lists.
+	// Defaults to pager.PageSize.
+	WatchListPageSize int64
 }
 
 var (
@@ -96,17 +99,10 @@ func NewReflector(lw ListerWatcher, expectedType interface{}, store Store, resyn
 	return NewNamedReflector(naming.GetNameFromCallsite(internalPackages...), lw, expectedType, store, resyncPeriod)
 }
 
-// reflectorDisambiguator is used to disambiguate started reflectors.
-// initialized to an unstable value to ensure meaning isn't attributed to the suffix.
-var reflectorDisambiguator = int64(time.Now().UnixNano() % 12345)
-
 // NewNamedReflector same as NewReflector, but with a specified name for logging
 func NewNamedReflector(name string, lw ListerWatcher, expectedType interface{}, store Store, resyncPeriod time.Duration) *Reflector {
-	reflectorSuffix := atomic.AddInt64(&reflectorDisambiguator, 1)
 	r := &Reflector{
-		name: name,
-		// we need this to be unique per process (some names are still the same) but obvious who it belongs to
-		metrics:       newReflectorMetrics(makeValidPrometheusMetricLabel(fmt.Sprintf("reflector_"+name+"_%d", reflectorSuffix))),
+		name:          name,
 		listerWatcher: lw,
 		store:         store,
 		expectedType:  reflect.TypeOf(expectedType),
@@ -174,8 +170,6 @@ func (r *Reflector) ListAndWatch(stopCh <-chan struct{}) error {
 	// to be served from cache and potentially be delayed relative to
 	// etcd contents. Reflector framework will catch up via Watch() eventually.
 	options := metav1.ListOptions{ResourceVersion: "0"}
-	r.metrics.numberOfLists.Inc()
-	start := r.clock.Now()
 
 	if err := func() error {
 		initTrace := trace.New("Reflector " + r.name + " ListAndWatch")
@@ -190,7 +184,16 @@ func (r *Reflector) ListAndWatch(stopCh <-chan struct{}) error {
 					panicCh <- r
 				}
 			}()
-			list, err = r.listerWatcher.List(options)
+			// Attempt to gather list in chunks, if supported by listerWatcher, if not, the first
+			// list request will return the full response.
+			pager := pager.New(pager.SimplePageFunc(func(opts metav1.ListOptions) (runtime.Object, error) {
+				return r.listerWatcher.List(opts)
+			}))
+			if r.WatchListPageSize != 0 {
+				pager.PageSize = r.WatchListPageSize
+			}
+			// Pager falls back to full list if paginated list calls fail due to an "Expired" error.
+			list, err = pager.List(context.Background(), options)
 			close(listCh)
 		}()
 		select {
@@ -204,7 +207,6 @@ func (r *Reflector) ListAndWatch(stopCh <-chan struct{}) error {
 			return fmt.Errorf("%s: Failed to list %v: %v", r.name, r.expectedType, err)
 		}
 		initTrace.Step("Objects listed")
-		r.metrics.listDuration.Observe(time.Since(start).Seconds())
 		listMetaInterface, err := meta.ListAccessor(list)
 		if err != nil {
 			return fmt.Errorf("%s: Unable to understand list result %#v: %v", r.name, list, err)
@@ -216,7 +218,6 @@ func (r *Reflector) ListAndWatch(stopCh <-chan struct{}) error {
 			return fmt.Errorf("%s: Unable to understand list result %#v (%v)", r.name, list, err)
 		}
 		initTrace.Step("Objects extracted")
-		r.metrics.numberOfItemsInList.Observe(float64(len(items)))
 		if err := r.syncWith(items, resourceVersion); err != nil {
 			return fmt.Errorf("%s: Unable to sync list result: %v", r.name, err)
 		}
@@ -272,7 +273,6 @@ func (r *Reflector) ListAndWatch(stopCh <-chan struct{}) error {
 			TimeoutSeconds: &timeoutSeconds,
 		}
 
-		r.metrics.numberOfWatches.Inc()
 		w, err := r.listerWatcher.Watch(options)
 		if err != nil {
 			switch err {
@@ -324,11 +324,6 @@ func (r *Reflector) watchHandler(w watch.Interface, resourceVersion *string, err
 	// Stopping the watcher should be idempotent and if we return from this function there's no way
 	// we're coming back in with the same watch interface.
 	defer w.Stop()
-	// update metrics
-	defer func() {
-		r.metrics.numberOfItemsInWatch.Observe(float64(eventCount))
-		r.metrics.watchDuration.Observe(time.Since(start).Seconds())
-	}()
 
 loop:
 	for {
@@ -382,9 +377,8 @@ loop:
 		}
 	}
 
-	watchDuration := r.clock.Now().Sub(start)
+	watchDuration := r.clock.Since(start)
 	if watchDuration < 1*time.Second && eventCount == 0 {
-		r.metrics.numberOfShortWatches.Inc()
 		return fmt.Errorf("very short watch: %s: Unexpected watch close - watch lasted less than a second and no items received", r.name)
 	}
 	klog.V(4).Infof("%s: Watch close - %v total %v items received", r.name, r.expectedType, eventCount)
@@ -403,9 +397,4 @@ func (r *Reflector) setLastSyncResourceVersion(v string) {
 	r.lastSyncResourceVersionMutex.Lock()
 	defer r.lastSyncResourceVersionMutex.Unlock()
 	r.lastSyncResourceVersion = v
-
-	rv, err := strconv.Atoi(v)
-	if err == nil {
-		r.metrics.lastResourceVersion.Set(float64(rv))
-	}
 }

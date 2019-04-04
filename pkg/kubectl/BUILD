@@ -107,6 +107,7 @@ filegroup(
         "//pkg/kubectl/apps:all-srcs",
         "//pkg/kubectl/cmd:all-srcs",
         "//pkg/kubectl/describe:all-srcs",
+        "//pkg/kubectl/drain:all-srcs",
         "//pkg/kubectl/explain:all-srcs",
         "//pkg/kubectl/generate:all-srcs",
         "//pkg/kubectl/generated:all-srcs",
@@ -116,6 +117,7 @@ filegroup(
         "//pkg/kubectl/scheme:all-srcs",
         "//pkg/kubectl/util:all-srcs",
         "//pkg/kubectl/validation:all-srcs",
+        "//pkg/kubectl/version:all-srcs",
     ],
     tags = ["automanaged"],
 )

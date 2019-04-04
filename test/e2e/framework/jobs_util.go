@@ -31,10 +31,10 @@ import (
 )
 
 const (
-	// How long to wait for a job to finish.
+	// JobTimeout is how long to wait for a job to finish.
 	JobTimeout = 15 * time.Minute
 
-	// Job selector name
+	// JobSelectorKey is a job selector name
 	JobSelectorKey = "job"
 )
 
@@ -182,7 +182,7 @@ func WaitForAllJobPodsRunning(c clientset.Interface, ns, jobName string, paralle
 	})
 }
 
-// WaitForJobComplete uses c to wait for compeletions to complete for the Job jobName in namespace ns.
+// WaitForJobComplete uses c to wait for completions to complete for the Job jobName in namespace ns.
 func WaitForJobComplete(c clientset.Interface, ns, jobName string, completions int32) error {
 	return wait.Poll(Poll, JobTimeout, func() (bool, error) {
 		curr, err := c.BatchV1().Jobs(ns).Get(jobName, metav1.GetOptions{})
@@ -251,7 +251,7 @@ func CheckForAllJobPodsRunning(c clientset.Interface, ns, jobName string, parall
 	return count == parallelism, nil
 }
 
-// WaitForAllJobPodsRunning wait for all pods for the Job named jobName in namespace ns
+// WaitForAllJobPodsGone waits for all pods for the Job named jobName in namespace ns
 // to be deleted.
 func WaitForAllJobPodsGone(c clientset.Interface, ns, jobName string) error {
 	return wait.PollImmediate(Poll, JobTimeout, func() (bool, error) {
@@ -271,6 +271,7 @@ func newBool(val bool) *bool {
 
 type updateJobFunc func(*batch.Job)
 
+// UpdateJobWithRetries updates jobs with retries.
 func UpdateJobWithRetries(c clientset.Interface, namespace, name string, applyUpdate updateJobFunc) (job *batch.Job, err error) {
 	jobs := c.BatchV1().Jobs(namespace)
 	var updateErr error
@@ -305,6 +306,7 @@ func WaitForJobDeleting(c clientset.Interface, ns, jobName string) error {
 	})
 }
 
+// JobFinishTime returns finish time of the specified job.
 func JobFinishTime(finishedJob *batch.Job) metav1.Time {
 	var finishTime metav1.Time
 	for _, c := range finishedJob.Status.Conditions {

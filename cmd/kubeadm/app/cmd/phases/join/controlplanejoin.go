@@ -20,11 +20,8 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
-	clientset "k8s.io/client-go/kubernetes"
-	kubeadmapi "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm"
 	"k8s.io/kubernetes/cmd/kubeadm/app/cmd/options"
 	"k8s.io/kubernetes/cmd/kubeadm/app/cmd/phases/workflow"
-	cmdutil "k8s.io/kubernetes/cmd/kubeadm/app/cmd/util"
 	kubeadmconstants "k8s.io/kubernetes/cmd/kubeadm/app/constants"
 	etcdphase "k8s.io/kubernetes/cmd/kubeadm/app/phases/etcd"
 	markcontrolplanephase "k8s.io/kubernetes/cmd/kubeadm/app/phases/markcontrolplane"
@@ -32,32 +29,21 @@ import (
 	"k8s.io/kubernetes/pkg/util/normalizer"
 )
 
-var (
-	controlPlaneJoinExample = normalizer.Examples(`
-		# Joins a machine as a control plane instance
-		kubeadm join phase control-plane-join all
-		`)
-)
+var controlPlaneJoinExample = normalizer.Examples(`
+	# Joins a machine as a control plane instance
+	kubeadm join phase control-plane-join all
+`)
 
-type controlPlaneJoinData interface {
-	Cfg() *kubeadmapi.JoinConfiguration
-	ClientSetFromFile(string) (*clientset.Clientset, error)
-	InitCfg() (*kubeadmapi.InitConfiguration, error)
-	KubeConfigPath() string
-}
-
-func getControlPlaneJoinPhaseFlags() []string {
-	return []string{
-		options.APIServerAdvertiseAddress,
-		options.APIServerBindPort,
+func getControlPlaneJoinPhaseFlags(name string) []string {
+	flags := []string{
 		options.CfgPath,
 		options.ControlPlane,
 		options.NodeName,
-		options.TokenDiscovery,
-		options.TokenDiscoveryCAHash,
-		options.TokenDiscoverySkipCAHash,
-		options.KubeconfigPath,
 	}
+	if name != "mark-control-plane" {
+		flags = append(flags, options.APIServerAdvertiseAddress)
+	}
+	return flags
 }
 
 // NewControlPlaneJoinPhase creates a kubeadm workflow phase that implements joining a machine as a control plane instance
@@ -65,17 +51,16 @@ func NewControlPlaneJoinPhase() workflow.Phase {
 	return workflow.Phase{
 		Name:    "control-plane-join",
 		Short:   "Joins a machine as a control plane instance",
-		Long:    cmdutil.MacroCommandLongDescription,
 		Example: controlPlaneJoinExample,
 		Phases: []workflow.Phase{
 			{
 				Name:           "all",
 				Short:          "Joins a machine as a control plane instance",
-				InheritFlags:   getControlPlaneJoinPhaseFlags(),
+				InheritFlags:   getControlPlaneJoinPhaseFlags("all"),
 				RunAllSiblings: true,
 			},
 			newEtcdLocalSubphase(),
-			newUploadConfigSubphase(),
+			newUpdateStatusSubphase(),
 			newMarkControlPlaneSubphase(),
 		},
 	}
@@ -84,18 +69,22 @@ func NewControlPlaneJoinPhase() workflow.Phase {
 func newEtcdLocalSubphase() workflow.Phase {
 	return workflow.Phase{
 		Name:         "etcd",
-		Short:        "Generates the static Pod manifest file for a local etcd member",
+		Short:        "Add a new local etcd member",
 		Run:          runEtcdPhase,
-		InheritFlags: getControlPlaneJoinPhaseFlags(),
+		InheritFlags: getControlPlaneJoinPhaseFlags("etcd"),
 	}
 }
 
-func newUploadConfigSubphase() workflow.Phase {
+func newUpdateStatusSubphase() workflow.Phase {
 	return workflow.Phase{
-		Name:         "upload-config",
-		Short:        "Upload the currently used configuration to the cluster",
-		Run:          runUploadConfigPhase,
-		InheritFlags: getControlPlaneJoinPhaseFlags(),
+		Name: "update-status",
+		Short: fmt.Sprintf(
+			"Register the new control-plane node into the %s maintained in the %s ConfigMap",
+			kubeadmconstants.ClusterStatusConfigMapKey,
+			kubeadmconstants.KubeadmConfigConfigMap,
+		),
+		Run:          runUpdateStatusPhase,
+		InheritFlags: getControlPlaneJoinPhaseFlags("update-status"),
 	}
 }
 
@@ -104,12 +93,12 @@ func newMarkControlPlaneSubphase() workflow.Phase {
 		Name:         "mark-control-plane",
 		Short:        "Mark a node as a control-plane",
 		Run:          runMarkControlPlanePhase,
-		InheritFlags: getControlPlaneJoinPhaseFlags(),
+		InheritFlags: getControlPlaneJoinPhaseFlags("mark-control-plane"),
 	}
 }
 
 func runEtcdPhase(c workflow.RunData) error {
-	data, ok := c.(controlPlaneJoinData)
+	data, ok := c.(JoinData)
 	if !ok {
 		return errors.New("control-plane-join phase invoked with an invalid data struct")
 	}
@@ -118,9 +107,8 @@ func runEtcdPhase(c workflow.RunData) error {
 		return nil
 	}
 
-	kubeConfigFile := data.KubeConfigPath()
-
-	client, err := data.ClientSetFromFile(kubeConfigFile)
+	// gets access to the cluster using the identity defined in admin.conf
+	client, err := data.ClientSet()
 	if err != nil {
 		return errors.Wrap(err, "couldn't create Kubernetes client")
 	}
@@ -150,8 +138,8 @@ func runEtcdPhase(c workflow.RunData) error {
 	return nil
 }
 
-func runUploadConfigPhase(c workflow.RunData) error {
-	data, ok := c.(controlPlaneJoinData)
+func runUpdateStatusPhase(c workflow.RunData) error {
+	data, ok := c.(JoinData)
 	if !ok {
 		return errors.New("control-plane-join phase invoked with an invalid data struct")
 	}
@@ -160,9 +148,8 @@ func runUploadConfigPhase(c workflow.RunData) error {
 		return nil
 	}
 
-	kubeConfigFile := data.KubeConfigPath()
-
-	client, err := data.ClientSetFromFile(kubeConfigFile)
+	// gets access to the cluster using the identity defined in admin.conf
+	client, err := data.ClientSet()
 	if err != nil {
 		return errors.Wrap(err, "couldn't create Kubernetes client")
 	}
@@ -179,7 +166,7 @@ func runUploadConfigPhase(c workflow.RunData) error {
 }
 
 func runMarkControlPlanePhase(c workflow.RunData) error {
-	data, ok := c.(controlPlaneJoinData)
+	data, ok := c.(JoinData)
 	if !ok {
 		return errors.New("control-plane-join phase invoked with an invalid data struct")
 	}
@@ -188,9 +175,8 @@ func runMarkControlPlanePhase(c workflow.RunData) error {
 		return nil
 	}
 
-	kubeConfigFile := data.KubeConfigPath()
-
-	client, err := data.ClientSetFromFile(kubeConfigFile)
+	// gets access to the cluster using the identity defined in admin.conf
+	client, err := data.ClientSet()
 	if err != nil {
 		return errors.Wrap(err, "couldn't create Kubernetes client")
 	}

@@ -28,8 +28,8 @@ import (
 	rbacv1alpha1 "k8s.io/api/rbac/v1alpha1"
 	rbacv1beta1 "k8s.io/api/rbac/v1beta1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"k8s.io/cli-runtime/pkg/genericclioptions/printers"
-	"k8s.io/cli-runtime/pkg/genericclioptions/resource"
+	"k8s.io/cli-runtime/pkg/printers"
+	"k8s.io/cli-runtime/pkg/resource"
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -107,13 +107,16 @@ func NewCmdReconcile(f cmdutil.Factory, streams genericclioptions.IOStreams) *co
 	cmd.Flags().BoolVar(&o.DryRun, "dry-run", o.DryRun, "If true, display results but do not submit changes")
 	cmd.Flags().BoolVar(&o.RemoveExtraPermissions, "remove-extra-permissions", o.RemoveExtraPermissions, "If true, removes extra permissions added to roles")
 	cmd.Flags().BoolVar(&o.RemoveExtraSubjects, "remove-extra-subjects", o.RemoveExtraSubjects, "If true, removes extra subjects added to rolebindings")
-	cmd.MarkFlagRequired("filename")
 
 	return cmd
 }
 
 // Complete completes all the required options
 func (o *ReconcileOptions) Complete(cmd *cobra.Command, f cmdutil.Factory, args []string) error {
+	if err := o.FilenameOptions.RequireFilenameOrKustomize(); err != nil {
+		return err
+	}
+
 	if len(args) > 0 {
 		return errors.New("no arguments are allowed")
 	}

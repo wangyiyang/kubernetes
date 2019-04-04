@@ -38,8 +38,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"k8s.io/cli-runtime/pkg/genericclioptions/printers"
-	"k8s.io/cli-runtime/pkg/genericclioptions/resource"
+	"k8s.io/cli-runtime/pkg/printers"
+	"k8s.io/cli-runtime/pkg/resource"
 	"k8s.io/client-go/rest"
 	watchtools "k8s.io/client-go/tools/watch"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
@@ -114,6 +114,9 @@ var (
 
 		# List a pod identified by type and name specified in "pod.yaml" in JSON output format.
 		kubectl get -f pod.yaml -o json
+
+		# List resources from a directory with kustomization.yaml - e.g. dir/kustomization.yaml.
+		kubectl get -k dir/
 
 		# Return only the phase value of the specified pod.
 		kubectl get -o template pod/web-pod-13je7 --template={{.status.phase}}
@@ -257,7 +260,7 @@ func (o *GetOptions) Complete(f cmdutil.Factory, cmd *cobra.Command, args []stri
 	switch {
 	case o.Watch || o.WatchOnly:
 	default:
-		if len(args) == 0 && cmdutil.IsFilenameSliceEmpty(o.Filenames) {
+		if len(args) == 0 && cmdutil.IsFilenameSliceEmpty(o.Filenames, o.Kustomize) {
 			fmt.Fprintf(o.ErrOut, "You must specify the type of resource to get. %s\n\n", cmdutil.SuggestAPIResources(o.CmdParent))
 			fullCmdName := cmd.Parent().CommandPath()
 			usageString := "Required resource not specified."
@@ -621,7 +624,7 @@ func (o *GetOptions) watch(f cmdutil.Factory, cmd *cobra.Command, args []string)
 		return err
 	}
 	if multipleGVKsRequested(infos) {
-		return i18n.Errorf("watch is only supported on individual resources and resource collections - more than 1 resources were found")
+		return i18n.Errorf("watch is only supported on individual resources and resource collections - more than 1 resource was found")
 	}
 
 	info := infos[0]

@@ -19,7 +19,6 @@ package etcd
 import (
 	"context"
 	"crypto/tls"
-	"fmt"
 	"net"
 	"net/url"
 	"path/filepath"
@@ -149,7 +148,7 @@ type Member struct {
 }
 
 // GetMemberID returns the member ID of the given peer URL
-func (c Client) GetMemberID(peerURL string) (uint64, error) {
+func (c *Client) GetMemberID(peerURL string) (uint64, error) {
 	cli, err := clientv3.New(clientv3.Config{
 		Endpoints:   c.Endpoints,
 		DialTimeout: 30 * time.Second,
@@ -176,7 +175,7 @@ func (c Client) GetMemberID(peerURL string) (uint64, error) {
 }
 
 // RemoveMember notifies an etcd cluster to remove an existing member
-func (c Client) RemoveMember(id uint64) ([]Member, error) {
+func (c *Client) RemoveMember(id uint64) ([]Member, error) {
 	cli, err := clientv3.New(clientv3.Config{
 		Endpoints:   c.Endpoints,
 		DialTimeout: 30 * time.Second,
@@ -251,7 +250,7 @@ func (c *Client) AddMember(name string, peerAddrs string) ([]Member, error) {
 
 // GetVersion returns the etcd version of the cluster.
 // An error is returned if the version of all endpoints do not match
-func (c Client) GetVersion() (string, error) {
+func (c *Client) GetVersion() (string, error) {
 	var clusterVersion string
 
 	versions, err := c.GetClusterVersions()
@@ -271,7 +270,7 @@ func (c Client) GetVersion() (string, error) {
 }
 
 // GetClusterVersions returns a map of the endpoints and their associated versions
-func (c Client) GetClusterVersions() (map[string]string, error) {
+func (c *Client) GetClusterVersions() (map[string]string, error) {
 	versions := make(map[string]string)
 	statuses, err := c.GetClusterStatus()
 	if err != nil {
@@ -285,7 +284,7 @@ func (c Client) GetClusterVersions() (map[string]string, error) {
 }
 
 // ClusterAvailable returns true if the cluster status indicates the cluster is available.
-func (c Client) ClusterAvailable() (bool, error) {
+func (c *Client) ClusterAvailable() (bool, error) {
 	_, err := c.GetClusterStatus()
 	if err != nil {
 		return false, err
@@ -294,7 +293,7 @@ func (c Client) ClusterAvailable() (bool, error) {
 }
 
 // GetClusterStatus returns nil for status Up or error for status Down
-func (c Client) GetClusterStatus() (map[string]*clientv3.StatusResponse, error) {
+func (c *Client) GetClusterStatus() (map[string]*clientv3.StatusResponse, error) {
 	cli, err := clientv3.New(clientv3.Config{
 		Endpoints:   c.Endpoints,
 		DialTimeout: 5 * time.Second,
@@ -319,20 +318,20 @@ func (c Client) GetClusterStatus() (map[string]*clientv3.StatusResponse, error) 
 }
 
 // WaitForClusterAvailable returns true if all endpoints in the cluster are available after retry attempts, an error is returned otherwise
-func (c Client) WaitForClusterAvailable(retries int, retryInterval time.Duration) (bool, error) {
+func (c *Client) WaitForClusterAvailable(retries int, retryInterval time.Duration) (bool, error) {
 	for i := 0; i < retries; i++ {
 		if i > 0 {
-			fmt.Printf("[util/etcd] Waiting %v until next retry\n", retryInterval)
+			klog.V(1).Infof("[etcd] Waiting %v until next retry\n", retryInterval)
 			time.Sleep(retryInterval)
 		}
-		klog.V(2).Infof("attempting to see if all cluster endpoints (%s) are available %d/%d", c.Endpoints, i+1, retries)
+		klog.V(2).Infof("[etcd] attempting to see if all cluster endpoints (%s) are available %d/%d", c.Endpoints, i+1, retries)
 		resp, err := c.ClusterAvailable()
 		if err != nil {
 			switch err {
 			case context.DeadlineExceeded:
-				fmt.Println("[util/etcd] Attempt timed out")
+				klog.V(1).Infof("[etcd] Attempt timed out")
 			default:
-				fmt.Printf("[util/etcd] Attempt failed with error: %v\n", err)
+				klog.V(1).Infof("[etcd] Attempt failed with error: %v\n", err)
 			}
 			continue
 		}

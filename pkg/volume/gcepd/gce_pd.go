@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"runtime"
 	"strconv"
 	"strings"
 
@@ -289,12 +290,15 @@ func (plugin *gcePersistentDiskPlugin) ExpandVolumeDevice(
 	return updatedQuantity, nil
 }
 
-func (plugin *gcePersistentDiskPlugin) ExpandFS(spec *volume.Spec, devicePath, deviceMountPath string, _, _ resource.Quantity) error {
-	_, err := util.GenericResizeFS(plugin.host, plugin.GetPluginName(), devicePath, deviceMountPath)
-	return err
+func (plugin *gcePersistentDiskPlugin) NodeExpand(resizeOptions volume.NodeResizeOptions) (bool, error) {
+	_, err := util.GenericResizeFS(plugin.host, plugin.GetPluginName(), resizeOptions.DevicePath, resizeOptions.DeviceMountPath)
+	if err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
-var _ volume.FSResizableVolumePlugin = &gcePersistentDiskPlugin{}
+var _ volume.NodeExpandableVolumePlugin = &gcePersistentDiskPlugin{}
 
 func (plugin *gcePersistentDiskPlugin) ConstructVolumeSpec(volumeName, mountPath string) (*volume.Spec, error) {
 	mounter := plugin.host.GetMounter(plugin.GetPluginName())
@@ -381,9 +385,12 @@ func (b *gcePersistentDiskMounter) SetUpAt(dir string, fsGroup *int64) error {
 		return nil
 	}
 
-	if err := os.MkdirAll(dir, 0750); err != nil {
-		klog.Errorf("mkdir failed on disk %s (%v)", dir, err)
-		return err
+	if runtime.GOOS != "windows" {
+		// in windows, we will use mklink to mount, will MkdirAll in Mount func
+		if err := os.MkdirAll(dir, 0750); err != nil {
+			klog.Errorf("mkdir failed on disk %s (%v)", dir, err)
+			return err
+		}
 	}
 
 	// Perform a bind mount to the full path to allow duplicate mounts of the same PD.
